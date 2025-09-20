@@ -64,7 +64,7 @@ module Verikloak
         @role_map = dup_hash(@role_map).freeze
         @realm_roles_path = dup_array(@realm_roles_path).freeze
         @resource_roles_path = dup_array(@resource_roles_path).freeze
-        @expose_helper_method = @expose_helper_method ? true : false
+        @expose_helper_method = !!@expose_helper_method
         freeze
       end
 
