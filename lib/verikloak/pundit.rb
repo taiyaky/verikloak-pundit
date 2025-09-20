@@ -41,6 +41,9 @@ module Verikloak
 
       private
 
+      # Mutex protecting configuration reads/writes to maintain thread safety.
+      #
+      # @return [Mutex]
       def config_mutex
         @config_mutex ||= Mutex.new
       end
