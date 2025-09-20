@@ -122,8 +122,7 @@ An additional integration check exercises the gem together with the latest `veri
 ```bash
 docker compose run --rm -e BUNDLE_FROZEN=0 dev bash -lc '
   cd integration && \
-  bundle lock --add-platform ruby x86_64-linux-musl aarch64-linux-musl && \
-  bundle update && \
+  bundle install --jobs 4 --retry 3 --path vendor/bundle && \
   bundle exec ruby check.rb
 '
 ```
