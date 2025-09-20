@@ -93,7 +93,6 @@ Verikloak::Pundit.configure do |c|
   c.permission_role_scope = :default_resource
 
   # Expose `verikloak_claims` to views via helper_method (Rails only)
-  # (※ 個人情報を含むクレームをテンプレートに公開するため、不要なら false を推奨)
   c.expose_helper_method = true
 end
 ```
@@ -120,12 +119,20 @@ docker compose run --rm dev rspec
 docker compose run --rm dev rubocop -a
 ```
 
-An additional integration check exercises the gem together with the latest
-`verikloak` and `verikloak-rails` releases. This runs in CI automatically, and
-you can execute it locally with:
+An additional integration check exercises the gem together with the latest `verikloak` and `verikloak-rails` releases. This runs in CI automatically, and you can execute it locally with:
 
 ```bash
-docker compose run --rm dev bash -lc 'cd integration && bundle update && bundle exec ruby check.rb'
+docker compose run --rm -e BUNDLE_FROZEN=0 dev bash -lc '
+  cd integration && \
+  apk add --no-cache --virtual .integration-build-deps \
+    build-base \
+    linux-headers \
+    openssl-dev \
+    yaml-dev && \
+  bundle install --jobs 4 --retry 3 --path vendor/bundle && \
+  bundle exec ruby check.rb && \
+  apk del .integration-build-deps
+'
 ```
 
 ## Contributing

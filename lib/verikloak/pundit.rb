@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 # Verikloak::Pundit provides Pundit integration over Keycloak claims.
-require 'thread'
 require_relative 'pundit/version'
 require_relative 'pundit/configuration'
 require_relative 'pundit/role_mapper'
@@ -22,7 +21,7 @@ module Verikloak
       def configure
         new_config = nil
         config_mutex.synchronize do
-          current = (@config&.dup) || Configuration.new
+          current = @config&.dup || Configuration.new
           yield current if block_given?
           new_config = current.finalize!
           @config = new_config
@@ -41,6 +40,9 @@ module Verikloak
 
       private
 
+      # Mutex protecting configuration reads/writes to maintain thread safety.
+      #
+      # @return [Mutex]
       def config_mutex
         @config_mutex ||= Mutex.new
       end
