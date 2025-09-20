@@ -54,7 +54,7 @@ module Verikloak
         @role_map = dup_hash(@role_map).freeze
         @realm_roles_path = dup_array(@realm_roles_path).freeze
         @resource_roles_path = dup_array(@resource_roles_path).freeze
-        @expose_helper_method = !!@expose_helper_method
+        @expose_helper_method = @expose_helper_method ? true : false
         freeze
       end
 
@@ -92,7 +92,21 @@ module Verikloak
       def dup_hash(value)
         return nil if value.nil?
 
-        value.dup
+        copy = value.dup
+        copy.each do |key, element|
+          copy[key] =
+            case element
+            when Hash
+              dup_hash(element)
+            when Array
+              dup_array(element)
+            when String
+              dup_string(element)
+            else
+              duplicable?(element) ? element.dup : element
+            end
+        end
+        copy
       end
 
       def dup_string(value)
@@ -105,14 +119,29 @@ module Verikloak
         return nil if value.nil?
 
         copy = value.dup
-        return copy unless copy.respond_to?(:map!)
+        return copy unless copy.respond_to?(:map)
 
-        copy.map! { |element| duplicable?(element) ? element.dup : element }
-        copy
+        copy.map do |element|
+          case element
+          when Hash
+            dup_hash(element)
+          when Array
+            dup_array(element)
+          when String
+            dup_string(element)
+          else
+            duplicable?(element) ? element.dup : element
+          end
+        end
       end
 
       def duplicable?(value)
-        value.respond_to?(:dup) && !value.is_a?(Proc)
+        case value
+        when nil, true, false, Symbol, Numeric, Proc
+          false
+        else
+          value.respond_to?(:dup)
+        end
       end
     end
   end
