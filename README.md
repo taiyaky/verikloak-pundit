@@ -122,8 +122,14 @@ An additional integration check exercises the gem together with the latest `veri
 ```bash
 docker compose run --rm -e BUNDLE_FROZEN=0 dev bash -lc '
   cd integration && \
+  apk add --no-cache --virtual .integration-build-deps \
+    build-base \
+    linux-headers \
+    openssl-dev \
+    yaml-dev && \
   bundle install --jobs 4 --retry 3 --path vendor/bundle && \
-  bundle exec ruby check.rb
+  bundle exec ruby check.rb && \
+  apk del .integration-build-deps
 '
 ```
 

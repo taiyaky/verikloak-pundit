@@ -158,6 +158,12 @@ jobs:
           docker compose run --rm -u 0:0 -e BUNDLE_FROZEN=0 dev bash -lc '
             set -euo pipefail
             cd integration
+            apk add --no-cache --virtual .integration-build-deps \
+              build-base \
+              linux-headers \
+              openssl-dev \
+              yaml-dev
             bundle install --jobs 4 --retry 3 --path vendor/bundle
             bundle exec ruby check.rb
+            apk del .integration-build-deps
           '
