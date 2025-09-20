@@ -122,7 +122,14 @@ An additional integration check exercises the gem together with the latest
 you can execute it locally with:
 
 ```bash
-docker compose run --rm dev bash -lc 'cd integration && bundle update && bundle exec ruby check.rb'
+docker compose run --rm dev bash -lc '
+  cd integration && \
+  bundle lock --add-platform ruby && \
+  bundle lock --add-platform x86_64-linux-musl && \
+  bundle lock --add-platform aarch64-linux-musl && \
+  bundle update && \
+  bundle exec ruby check.rb
+'
 ```
 
 ## Contributing
