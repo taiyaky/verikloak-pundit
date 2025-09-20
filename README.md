@@ -120,12 +120,9 @@ docker compose run --rm dev rubocop -a
 An additional integration check exercises the gem together with the latest `verikloak` and `verikloak-rails` releases. This runs in CI automatically, and you can execute it locally with:
 
 ```bash
-docker compose run --rm dev bash -lc '
+docker compose run --rm -e BUNDLE_FROZEN=false dev bash -lc '
   cd integration && \
-  export BUNDLE_FROZEN=false && \
-  bundle lock --add-platform ruby && \
-  bundle lock --add-platform x86_64-linux-musl && \
-  bundle lock --add-platform aarch64-linux-musl && \
+  bundle lock --add-platform ruby x86_64-linux-musl aarch64-linux-musl && \
   bundle update && \
   bundle exec ruby check.rb
 '
