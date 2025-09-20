@@ -122,6 +122,7 @@ An additional integration check exercises the gem together with the latest `veri
 ```bash
 docker compose run --rm dev bash -lc '
   cd integration && \
+  export BUNDLE_FROZEN=false && \
   bundle lock --add-platform ruby && \
   bundle lock --add-platform x86_64-linux-musl && \
   bundle lock --add-platform aarch64-linux-musl && \
