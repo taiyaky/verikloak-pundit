@@ -24,6 +24,10 @@ This document summarizes error handling expectations, fallback behaviors, and op
 - Apply configuration changes during initialization, and when tests mutate global config, reset values in `ensure` blocks to avoid leakage.
 - Whenever you customize role mappings, cover the expected permission outcomes with tests to catch unintended grants.
 
+## Operational Security Notes
+- Enabling `permission_role_scope = :all_resources` means every client listed in `resource_access` contributes roles to the permission checks. Review the upstream assignments before enabling it so that you do not unintentionally broaden authorization scope.
+- Keeping `expose_helper_method` set to `true` exposes `verikloak_claims` directly to views. If the claims carry personal or sensitive information, prefer disabling it (`false`) and limit the data passed to templates.
+
 ## Logging and Debugging Tips
 - In Rails, inspect claim payloads with `Rails.logger.debug(request.env[Verikloak::Pundit.config.env_claims_key])`.
 - To isolate authorization issues, instantiate `UserContext` directly and inspect `realm_roles`, `resource_roles`, and `has_permission?` outcomes in a console session.

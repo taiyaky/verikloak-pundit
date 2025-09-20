@@ -11,8 +11,6 @@ Pundit integration for the **Verikloak** family. This gem maps **Keycloak roles*
 - Provides a `pundit_user` hook so policies can use `user.has_role?(:admin)` etc.
 - Keeps role mapping **configurable** (project-specific mappings differ).
 
-
-
 ## Features
 
 - **UserContext**: lightweight wrapper around JWT claims
@@ -88,6 +86,8 @@ Verikloak::Pundit.configure do |c|
   # Permission mapping scope for `user.has_permission?`:
   #   :default_resource => realm roles + default client roles (recommended)
   #   :all_resources    => realm roles + roles from all clients in resource_access
+  #                         (enabling this broadens permissions to every resource client;
+  #                          review the upstream role assignments before turning it on)
   c.permission_role_scope = :default_resource
 
   # Expose `verikloak_claims` to views via helper_method (Rails only)
@@ -127,7 +127,8 @@ docker compose run --rm -e BUNDLE_FROZEN=0 dev bash -lc '
     linux-headers \
     openssl-dev \
     yaml-dev && \
-  bundle install --jobs 4 --retry 3 --path vendor/bundle && \
+  bundle config set --local path vendor/bundle && \
+  bundle install --jobs 4 --retry 3 && \
   bundle exec ruby check.rb && \
   apk del .integration-build-deps
 '
@@ -138,6 +139,10 @@ Bug reports and pull requests are welcome! Please see [CONTRIBUTING.md](CONTRIBU
 
 ## Security
 If you find a security vulnerability, please follow the instructions in [SECURITY.md](SECURITY.md).
+
+### Operational guidance
+- Enabling `permission_role_scope = :all_resources` pulls roles from every Keycloak client in `resource_access`. Review the granted roles carefully to ensure you are not expanding permissions beyond what the application expects.
+- Leaving `expose_helper_method = true` exposes `verikloak_claims` to the Rails view layer. If the claims include personal or sensitive data, consider switching it to `false` and pass only the minimum required information through controller-provided helpers.
 
 ## License
 This project is licensed under the [MIT License](LICENSE).

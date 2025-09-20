@@ -64,5 +64,29 @@ RSpec.describe Verikloak::Pundit::Configuration do
       end
     end
   end
-end
 
+  it "does not share nested configuration structures across publishes" do
+    begin
+      Verikloak::Pundit.configure do |c|
+        c.role_map = { admin: [:manage_all] }
+        c.realm_roles_path = ["roles", ["nested"]]
+      end
+
+      published = Verikloak::Pundit.config
+
+      Verikloak::Pundit.configure do |c|
+        c.role_map[:admin] << :additional
+        c.realm_roles_path.last << "another"
+      end
+
+      expect(published.role_map[:admin]).to eq([:manage_all])
+      expect(published.realm_roles_path).to eq(["roles", ["nested"]])
+    ensure
+      Verikloak::Pundit.configure do |c|
+        c.role_map = {}
+        c.realm_roles_path = %w[realm_access roles]
+        c.expose_helper_method = true
+      end
+    end
+  end
+end
