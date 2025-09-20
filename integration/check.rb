@@ -19,7 +19,7 @@ raise 'Verikloak::Pundit missing' unless defined?(Verikloak::Pundit)
 
 # Ensure a UserContext can be built from a Rack env populated by verikloak.
 claims = { 'realm_access' => { 'roles' => %w[viewer] } }
-user = Verikloak::Pundit::UserContext.new(claims, config: Verikloak::Pundit::Configuration.new)
+user = Verikloak::Pundit::UserContext.new(claims)
 raise 'UserContext failed to expose realm roles' unless user.realm_roles.include?('viewer')
 
 env = { 'verikloak.user' => claims }
