@@ -7,7 +7,10 @@ module Verikloak
       # Hook used by Rails to include helper methods in views when available.
       # @param base [Class]
       def self.included(base)
-        base.helper_method :verikloak_claims if base.respond_to?(:helper_method)
+        return unless base.respond_to?(:helper_method)
+
+        config = Verikloak::Pundit.config
+        base.helper_method :verikloak_claims if config.expose_helper_method
       end
 
       # Pundit hook returning the UserContext built from Rack env claims.

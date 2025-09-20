@@ -89,6 +89,9 @@ Verikloak::Pundit.configure do |c|
   #   :default_resource => realm roles + default client roles (recommended)
   #   :all_resources    => realm roles + roles from all clients in resource_access
   c.permission_role_scope = :default_resource
+
+  # Expose `verikloak_claims` to views via helper_method (Rails only)
+  c.expose_helper_method = true
 end
 ```
 
@@ -112,6 +115,14 @@ To run the test suite locally:
 ```bash
 docker compose run --rm dev rspec
 docker compose run --rm dev rubocop -a
+```
+
+An additional integration check exercises the gem together with the latest
+`verikloak` and `verikloak-rails` releases. This runs in CI automatically, and
+you can execute it locally with:
+
+```bash
+docker compose run --rm dev bash -lc 'cd integration && bundle update && bundle exec ruby check.rb'
 ```
 
 ## Contributing

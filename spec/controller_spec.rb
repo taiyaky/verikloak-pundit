@@ -17,6 +17,48 @@ class FakeController
 end
 
 RSpec.describe Verikloak::Pundit::Controller do
+  describe ".included" do
+    def build_controller_class
+      Class.new do
+        class << self
+          attr_reader :helper_method_calls
+
+          def helper_method(*args)
+            (@helper_method_calls ||= []) << args
+          end
+        end
+
+        def self.name
+          "HelperMethodTestController"
+        end
+      end
+    end
+
+    it "registers verikloak_claims helper when enabled" do
+      begin
+        Verikloak::Pundit.configure { |c| c.expose_helper_method = true }
+        klass = build_controller_class
+        klass.include(described_class)
+
+        expect(klass.helper_method_calls).to include([:verikloak_claims])
+      ensure
+        Verikloak::Pundit.configure { |c| c.expose_helper_method = true }
+      end
+    end
+
+    it "skips helper registration when disabled" do
+      begin
+        Verikloak::Pundit.configure { |c| c.expose_helper_method = false }
+        klass = build_controller_class
+        klass.include(described_class)
+
+        expect(klass.helper_method_calls).to be_nil
+      ensure
+        Verikloak::Pundit.configure { |c| c.expose_helper_method = true }
+      end
+    end
+  end
+
   it "builds a UserContext from env and exposes claims" do
     begin
       Verikloak::Pundit.configure do |c|
