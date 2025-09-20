@@ -154,7 +154,10 @@ jobs:
         run: docker compose build
 
       - name: Run verikloak/verikloak-rails integration check
-        run:
-          cd integration
-          set -euo pipefail
-          docker compose run --rm -u 0:0 dev bash -c "bundle exec ruby check.rb"
+        run: |
+          docker compose run --rm -u 0:0 -e BUNDLE_FROZEN=0 dev bash -lc '
+            set -euo pipefail
+            cd integration
+            bundle install --jobs 4 --retry 3 --path vendor/bundle
+            bundle exec ruby check.rb
+          '

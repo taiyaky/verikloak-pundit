@@ -12,9 +12,9 @@ RUN apk upgrade --no-cache && \
       tzdata \
       libstdc++ \
       yaml \
-      pkgconf \
+      pkgconf && \
+    apk add --no-cache --virtual .build-deps \
       build-base \
-      linux-headers \
       openssl-dev \
       yaml-dev
 
@@ -33,6 +33,9 @@ RUN bundle install
 
 # App source
 COPY . .
+
+# Remove build dependencies to slim the image
+RUN apk del .build-deps
 
 # Run as non-root for safety in CI/dev, and match host UID/GID for bind-mount write access
 ARG UID=1000
