@@ -11,8 +11,6 @@ Pundit integration for the **Verikloak** family. This gem maps **Keycloak roles*
 - Provides a `pundit_user` hook so policies can use `user.has_role?(:admin)` etc.
 - Keeps role mapping **configurable** (project-specific mappings differ).
 
-
-
 ## Features
 
 - **UserContext**: lightweight wrapper around JWT claims
