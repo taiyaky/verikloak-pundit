@@ -23,6 +23,10 @@ module Verikloak
                     :realm_roles_path, :resource_roles_path,
                     :permission_role_scope, :expose_helper_method
 
+      # Build a new configuration, optionally copying values from another
+      # configuration so callers can mutate a safe duplicate.
+      #
+      # @param copy_from [Configuration, nil]
       def initialize(copy_from = nil)
         if copy_from
           initialize_from(copy_from)
@@ -60,6 +64,7 @@ module Verikloak
 
       private
 
+      # Populate default values that mirror the gem's out-of-the-box behavior.
       def initialize_defaults
         @resource_client   = 'rails-api'
         @role_map          = {} # e.g., { admin: :manage_all }
@@ -73,6 +78,10 @@ module Verikloak
         @expose_helper_method = true
       end
 
+      # Copy configuration fields from another instance, duplicating mutable
+      # structures so future writes do not leak across instances.
+      #
+      # @param other [Configuration]
       def initialize_from(other)
         @resource_client = dup_string(other.resource_client)
         @role_map = dup_hash(other.role_map)
@@ -83,12 +92,21 @@ module Verikloak
         @expose_helper_method = other.expose_helper_method
       end
 
+      # Duplicate and freeze a string value, returning `nil` when appropriate.
+      #
+      # @param value [String, nil]
+      # @return [String, nil]
       def freeze_string(value)
         return nil if value.nil?
 
         dup_string(value).freeze
       end
 
+      # Recursively duplicate a hash, cloning nested structures so the copy can
+      # be mutated safely.
+      #
+      # @param value [Hash, nil]
+      # @return [Hash, nil]
       def dup_hash(value)
         return nil if value.nil?
 
@@ -109,12 +127,20 @@ module Verikloak
         copy
       end
 
+      # Duplicate a string guardingly, returning `nil` when no value is present.
+      #
+      # @param value [String, nil]
+      # @return [String, nil]
       def dup_string(value)
         return nil if value.nil?
 
         value.dup
       end
 
+      # Recursively duplicate an array while copying nested structures.
+      #
+      # @param value [Array, nil]
+      # @return [Array, nil]
       def dup_array(value)
         return nil if value.nil?
 
@@ -135,6 +161,10 @@ module Verikloak
         end
       end
 
+      # Check whether a value can be safely duplicated using `dup`.
+      #
+      # @param value [Object]
+      # @return [Boolean]
       def duplicable?(value)
         case value
         when nil, true, false, Symbol, Numeric, Proc
