@@ -64,7 +64,7 @@ module Verikloak
         @role_map = dup_hash(@role_map).freeze
         @realm_roles_path = dup_array(@realm_roles_path).freeze
         @resource_roles_path = dup_array(@resource_roles_path).freeze
-        @expose_helper_method = @expose_helper_method ? true : false
+        @expose_helper_method = !@expose_helper_method.nil? && @expose_helper_method
         freeze
       end
 
@@ -172,12 +172,11 @@ module Verikloak
       # @param value [Object]
       # @return [Boolean]
       def duplicable?(value)
-        case value
-        when nil, true, false, Symbol, Numeric, Proc
-          false
-        else
-          value.respond_to?(:dup)
-        end
+        return false if value.nil?
+        return false if [true, false].include?(value)
+        return false if value.is_a?(Symbol) || value.is_a?(Numeric) || value.is_a?(Proc)
+
+        value.respond_to?(:dup)
       end
     end
   end

@@ -35,6 +35,7 @@ RSpec.describe Verikloak::Pundit::Controller do
     end
 
     it "registers verikloak_claims helper when enabled" do
+      previous_value = Verikloak::Pundit.config.expose_helper_method
       begin
         Verikloak::Pundit.configure { |c| c.expose_helper_method = true }
         klass = build_controller_class
@@ -42,11 +43,12 @@ RSpec.describe Verikloak::Pundit::Controller do
 
         expect(klass.helper_method_calls).to include([:verikloak_claims])
       ensure
-        Verikloak::Pundit.configure { |c| c.expose_helper_method = true }
+        Verikloak::Pundit.configure { |c| c.expose_helper_method = previous_value }
       end
     end
 
     it "skips helper registration when disabled" do
+      previous_value = Verikloak::Pundit.config.expose_helper_method
       begin
         Verikloak::Pundit.configure { |c| c.expose_helper_method = false }
         klass = build_controller_class
@@ -54,7 +56,7 @@ RSpec.describe Verikloak::Pundit::Controller do
 
         expect(klass.helper_method_calls).to be_nil
       ensure
-        Verikloak::Pundit.configure { |c| c.expose_helper_method = true }
+        Verikloak::Pundit.configure { |c| c.expose_helper_method = previous_value }
       end
     end
   end

@@ -16,7 +16,7 @@ RUN apk upgrade --no-cache && \
     apk add --no-cache --virtual .build-deps \
       build-base \
       openssl-dev \
-      yaml-dev  
+      yaml-dev
 
 WORKDIR /app
 

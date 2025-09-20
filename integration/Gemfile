@@ -1,0 +1,11 @@
+# frozen_string_literal: true
+
+source 'https://rubygems.org'
+
+# Pull the latest compatible releases of the core Verikloak gems
+# and resolve them together with the local verikloak-pundit checkout.
+
+gem 'verikloak', '~> 0.1'
+gem 'verikloak-rails', '~> 0.1'
+
+gem 'verikloak-pundit', path: '..'
