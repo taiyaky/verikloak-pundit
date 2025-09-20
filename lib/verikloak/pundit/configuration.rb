@@ -16,10 +16,12 @@ module Verikloak
     #   @return [Array<String,Proc>] path inside JWT claims to reach resource roles
     # @!attribute permission_role_scope
     #   @return [Symbol] :default_resource or :all_resources for permission mapping scope
+    # @!attribute expose_helper_method
+    #   @return [Boolean] whether to register `verikloak_claims` as a Rails helper method
     class Configuration
       attr_accessor :resource_client, :role_map, :env_claims_key,
                     :realm_roles_path, :resource_roles_path,
-                    :permission_role_scope
+                    :permission_role_scope, :expose_helper_method
 
       def initialize(copy_from = nil)
         if copy_from
@@ -52,6 +54,7 @@ module Verikloak
         @role_map = dup_hash(@role_map).freeze
         @realm_roles_path = dup_array(@realm_roles_path).freeze
         @resource_roles_path = dup_array(@resource_roles_path).freeze
+        @expose_helper_method = !!@expose_helper_method
         freeze
       end
 
@@ -67,6 +70,7 @@ module Verikloak
         # rubocop:enable Style/SymbolProc
         # :default_resource (realm + default client), :all_resources (realm + all clients)
         @permission_role_scope = :default_resource
+        @expose_helper_method = true
       end
 
       def initialize_from(other)
@@ -76,6 +80,7 @@ module Verikloak
         @realm_roles_path = dup_array(other.realm_roles_path)
         @resource_roles_path = dup_array(other.resource_roles_path)
         @permission_role_scope = other.permission_role_scope
+        @expose_helper_method = other.expose_helper_method
       end
 
       def freeze_string(value)

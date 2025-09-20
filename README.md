@@ -89,6 +89,9 @@ Verikloak::Pundit.configure do |c|
   #   :default_resource => realm roles + default client roles (recommended)
   #   :all_resources    => realm roles + roles from all clients in resource_access
   c.permission_role_scope = :default_resource
+
+  # Expose `verikloak_claims` to views via helper_method (Rails only)
+  c.expose_helper_method = true
 end
 ```
 
