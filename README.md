@@ -88,8 +88,8 @@ Verikloak::Pundit.configure do |c|
   # Permission mapping scope for `user.has_permission?`:
   #   :default_resource => realm roles + default client roles (recommended)
   #   :all_resources    => realm roles + roles from all clients in resource_access
-  #                         (※ すべてのリソースクライアントのロールが権限候補になるため、
-  #                            想定外の権限が付与されないよう設定前に要確認)
+  #                         (enabling this broadens permissions to every resource client;
+  #                          review the upstream role assignments before turning it on)
   c.permission_role_scope = :default_resource
 
   # Expose `verikloak_claims` to views via helper_method (Rails only)
