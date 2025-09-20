@@ -25,8 +25,8 @@ This document summarizes error handling expectations, fallback behaviors, and op
 - Whenever you customize role mappings, cover the expected permission outcomes with tests to catch unintended grants.
 
 ## Operational Security Notes
-- `permission_role_scope = :all_resources` を設定すると、`resource_access` に含まれるすべてのクライアントのロールが権限候補になります。アプリ側のアクセス制御ポリシーに照らして不要な権限が含まれないか確認した上で有効化してください。
-- `expose_helper_method` を `true` のままにすると `verikloak_claims` をビューから直接参照できるため、個人情報や認可トークンがテンプレートに露出する可能性があります。必要がなければ `false` に変更し、ビューへ渡すデータを最小限にしてください。
+- Enabling `permission_role_scope = :all_resources` means every client listed in `resource_access` contributes roles to the permission checks. Review the upstream assignments before enabling it so that you do not unintentionally broaden authorization scope.
+- Keeping `expose_helper_method` set to `true` exposes `verikloak_claims` directly to views. If the claims carry personal or sensitive information, prefer disabling it (`false`) and limit the data passed to templates.
 
 ## Logging and Debugging Tips
 - In Rails, inspect claim payloads with `Rails.logger.debug(request.env[Verikloak::Pundit.config.env_claims_key])`.

@@ -143,8 +143,8 @@ Bug reports and pull requests are welcome! Please see [CONTRIBUTING.md](CONTRIBU
 If you find a security vulnerability, please follow the instructions in [SECURITY.md](SECURITY.md).
 
 ### Operational guidance
-- `permission_role_scope = :all_resources` を有効にすると、Keycloak のすべてのクライアントに付与されたロールが権限候補になります。アプリケーションで不要な権限が紛れ込まないよう、利用前に付与範囲を十分に確認してください。
-- `expose_helper_method = true` のままにすると `verikloak_claims` が Rails のビュー層へ公開されます。個人情報や機微情報を含むクレームをテンプレートから直接参照したくない場合は `false` に変更し、必要最小限のデータだけをコントローラ経由で渡す運用を検討してください。
+- Enabling `permission_role_scope = :all_resources` pulls roles from every Keycloak client in `resource_access`. Review the granted roles carefully to ensure you are not expanding permissions beyond what the application expects.
+- Leaving `expose_helper_method = true` exposes `verikloak_claims` to the Rails view layer. If the claims include personal or sensitive data, consider switching it to `false` and pass only the minimum required information through controller-provided helpers.
 
 ## License
 This project is licensed under the [MIT License](LICENSE).
