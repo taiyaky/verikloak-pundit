@@ -58,7 +58,9 @@ raise 'UserContext failed to include roles from all resources' unless user.has_p
 klass = Class.new do
   include Verikloak::Pundit::Controller
 end
-raise 'Controller failed to expose helper when enabled' unless klass.respond_to?(:helper_method) && klass.singleton_class.instance_variable_get(:@helper_method_calls)&.include?([:verikloak_claims])
+helper_calls = klass.singleton_class.instance_variable_get(:@helper_method_calls)
+missing_helper = !klass.respond_to?(:helper_method) || !helper_calls&.include?([:verikloak_claims])
+raise 'Controller failed to expose helper when enabled' if missing_helper
 
 Verikloak::Pundit.configure do |config|
   config.expose_helper_method = false
@@ -67,7 +69,9 @@ klass = Class.new do
   def self.helper_method(*) = (@helper_method_calls ||= []) << :verikloak_claims
   include Verikloak::Pundit::Controller
 end
-raise 'Controller exposed helper despite being disabled' if klass.singleton_class.instance_variable_get(:@helper_method_calls)
+if klass.singleton_class.instance_variable_get(:@helper_method_calls)
+  raise 'Controller exposed helper despite being disabled'
+end
 
 # Restore defaults after integration checks
 Verikloak::Pundit.configure do |config|
