@@ -172,12 +172,11 @@ module Verikloak
       # @param value [Object]
       # @return [Boolean]
       def duplicable?(value)
-        case value
-        when nil, true, false, Symbol, Numeric, Proc
-          false
-        else
-          value.respond_to?(:dup)
-        end
+        return false if value.nil?
+        return false if value == true || value == false
+        return false if value.is_a?(Symbol) || value.is_a?(Numeric) || value.is_a?(Proc)
+
+        value.respond_to?(:dup)
       end
     end
   end
