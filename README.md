@@ -88,7 +88,13 @@ Verikloak::Pundit.configure do |c|
   # Permission mapping scope for `user.has_permission?`:
   #   :default_resource => realm roles + default client roles (recommended)
   #   :all_resources    => realm roles + roles from all clients in resource_access
+  #                         (※ すべてのリソースクライアントのロールが権限候補になるため、
+  #                            想定外の権限が付与されないよう設定前に要確認)
   c.permission_role_scope = :default_resource
+
+  # Expose `verikloak_claims` to views via helper_method (Rails only)
+  # (※ 個人情報を含むクレームをテンプレートに公開するため、不要なら false を推奨)
+  c.expose_helper_method = true
 end
 ```
 
@@ -114,11 +120,23 @@ docker compose run --rm dev rspec
 docker compose run --rm dev rubocop -a
 ```
 
+An additional integration check exercises the gem together with the latest
+`verikloak` and `verikloak-rails` releases. This runs in CI automatically, and
+you can execute it locally with:
+
+```bash
+docker compose run --rm dev bash -lc 'cd integration && bundle update && bundle exec ruby check.rb'
+```
+
 ## Contributing
 Bug reports and pull requests are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ## Security
 If you find a security vulnerability, please follow the instructions in [SECURITY.md](SECURITY.md).
+
+### Operational guidance
+- `permission_role_scope = :all_resources` を有効にすると、Keycloak のすべてのクライアントに付与されたロールが権限候補になります。アプリケーションで不要な権限が紛れ込まないよう、利用前に付与範囲を十分に確認してください。
+- `expose_helper_method = true` のままにすると `verikloak_claims` が Rails のビュー層へ公開されます。個人情報や機微情報を含むクレームをテンプレートから直接参照したくない場合は `false` に変更し、必要最小限のデータだけをコントローラ経由で渡す運用を検討してください。
 
 ## License
 This project is licensed under the [MIT License](LICENSE).

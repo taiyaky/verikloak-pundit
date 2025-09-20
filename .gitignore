@@ -1,6 +1,9 @@
 # Ignore bundler config
 .bundle/
 vendor/bundle/
+integration/vendor/
+integration/.bundle/
+integration/Gemfile.lock
 
 # Ignore logs and temp files
 log/
