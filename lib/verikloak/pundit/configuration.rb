@@ -23,13 +23,10 @@ module Verikloak
                     :realm_roles_path, :resource_roles_path,
                     :permission_role_scope, :expose_helper_method
 
-<<<<<<< HEAD
-=======
       # Build a new configuration, optionally copying values from another
       # configuration so callers can mutate a safe duplicate.
       #
       # @param copy_from [Configuration, nil]
->>>>>>> main
       def initialize(copy_from = nil)
         if copy_from
           initialize_from(copy_from)
@@ -41,22 +38,16 @@ module Verikloak
       # Create a deep-ish copy that can be safely mutated without affecting the
       # source configuration. `dup` is overridden so the object returned from
       # `Verikloak::Pundit.config.dup` behaves as expected.
-<<<<<<< HEAD
-=======
       #
       # @return [Configuration]
->>>>>>> main
       def dup
         self.class.new(self)
       end
 
-<<<<<<< HEAD
-=======
       # Duplicate the configuration via Ruby's `dup`, ensuring the new instance
       # receives freshly-copied nested state.
       #
       # @param other [Configuration]
->>>>>>> main
       def initialize_copy(other)
         super
         initialize_from(other)
@@ -73,20 +64,13 @@ module Verikloak
         @role_map = dup_hash(@role_map).freeze
         @realm_roles_path = dup_array(@realm_roles_path).freeze
         @resource_roles_path = dup_array(@resource_roles_path).freeze
-<<<<<<< HEAD
-        @expose_helper_method = !!@expose_helper_method
-=======
         @expose_helper_method = @expose_helper_method ? true : false
->>>>>>> main
         freeze
       end
 
       private
 
-<<<<<<< HEAD
-=======
       # Populate default values that mirror the gem's out-of-the-box behavior.
->>>>>>> main
       def initialize_defaults
         @resource_client   = 'rails-api'
         @role_map          = {} # e.g., { admin: :manage_all }
@@ -100,13 +84,10 @@ module Verikloak
         @expose_helper_method = true
       end
 
-<<<<<<< HEAD
-=======
       # Copy configuration fields from another instance, duplicating mutable
       # structures so future writes do not leak across instances.
       #
       # @param other [Configuration]
->>>>>>> main
       def initialize_from(other)
         @resource_client = dup_string(other.resource_client)
         @role_map = dup_hash(other.role_map)
@@ -117,27 +98,16 @@ module Verikloak
         @expose_helper_method = other.expose_helper_method
       end
 
-<<<<<<< HEAD
-=======
       # Duplicate and freeze a string value, returning `nil` when appropriate.
       #
       # @param value [String, nil]
       # @return [String, nil]
->>>>>>> main
       def freeze_string(value)
         return nil if value.nil?
 
         dup_string(value).freeze
       end
 
-<<<<<<< HEAD
-      def dup_hash(value)
-        return nil if value.nil?
-
-        value.dup
-      end
-
-=======
       # Recursively duplicate a hash, cloning nested structures so the copy can
       # be mutated safely.
       #
@@ -167,34 +137,20 @@ module Verikloak
       #
       # @param value [String, nil]
       # @return [String, nil]
->>>>>>> main
       def dup_string(value)
         return nil if value.nil?
 
         value.dup
       end
 
-<<<<<<< HEAD
-=======
       # Recursively duplicate an array while copying nested structures.
       #
       # @param value [Array, nil]
       # @return [Array, nil]
->>>>>>> main
       def dup_array(value)
         return nil if value.nil?
 
         copy = value.dup
-<<<<<<< HEAD
-        return copy unless copy.respond_to?(:map!)
-
-        copy.map! { |element| duplicable?(element) ? element.dup : element }
-        copy
-      end
-
-      def duplicable?(value)
-        value.respond_to?(:dup) && !value.is_a?(Proc)
-=======
         return copy unless copy.respond_to?(:map)
 
         copy.map do |element|
@@ -222,7 +178,6 @@ module Verikloak
         else
           value.respond_to?(:dup)
         end
->>>>>>> main
       end
     end
   end
