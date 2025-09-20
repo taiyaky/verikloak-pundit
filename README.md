@@ -117,9 +117,7 @@ docker compose run --rm dev rspec
 docker compose run --rm dev rubocop -a
 ```
 
-An additional integration check exercises the gem together with the latest
-`verikloak` and `verikloak-rails` releases. This runs in CI automatically, and
-you can execute it locally with:
+An additional integration check exercises the gem together with the latest `verikloak` and `verikloak-rails` releases. This runs in CI automatically, and you can execute it locally with:
 
 ```bash
 docker compose run --rm dev bash -lc '
