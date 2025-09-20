@@ -38,10 +38,16 @@ module Verikloak
       # Create a deep-ish copy that can be safely mutated without affecting the
       # source configuration. `dup` is overridden so the object returned from
       # `Verikloak::Pundit.config.dup` behaves as expected.
+      #
+      # @return [Configuration]
       def dup
         self.class.new(self)
       end
 
+      # Duplicate the configuration via Ruby's `dup`, ensuring the new instance
+      # receives freshly-copied nested state.
+      #
+      # @param other [Configuration]
       def initialize_copy(other)
         super
         initialize_from(other)
