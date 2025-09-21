@@ -11,6 +11,7 @@ RSpec.describe Verikloak::Pundit::Configuration do
     expect(cfg.realm_roles_path).to eq(%w[realm_access roles])
     expect(cfg.resource_roles_path).to be_a(Array)
     expect(cfg.permission_role_scope).to eq(:default_resource)
+    expect(cfg.permission_resource_clients).to be_nil
     expect(cfg.expose_helper_method).to be(true)
   end
 
@@ -20,6 +21,7 @@ RSpec.describe Verikloak::Pundit::Configuration do
         c.resource_client = "api"
         c.role_map = { admin: :all }
         c.permission_role_scope = :all_resources
+        c.permission_resource_clients = [:api, "rails-api"]
         c.expose_helper_method = false
       end
       expect(result).to be_a(described_class)
@@ -27,16 +29,20 @@ RSpec.describe Verikloak::Pundit::Configuration do
       expect(result.resource_client).to be_frozen
       expect(result.role_map).to be_frozen
       expect(result.env_claims_key).to be_frozen
+      expect(result.permission_resource_clients).to eq(%w[api rails-api])
+      expect(result.permission_resource_clients).to be_frozen
       expect(result.expose_helper_method).to be(false)
       expect(Verikloak::Pundit.config.resource_client).to eq("api")
       expect(Verikloak::Pundit.config.role_map).to eq({ admin: :all })
       expect(Verikloak::Pundit.config.permission_role_scope).to eq(:all_resources)
+      expect(Verikloak::Pundit.config.permission_resource_clients).to eq(%w[api rails-api])
       expect(Verikloak::Pundit.config.expose_helper_method).to be(false)
     ensure
       Verikloak::Pundit.configure do |c|
         c.resource_client = "rails-api"
         c.role_map = {}
         c.permission_role_scope = :default_resource
+        c.permission_resource_clients = nil
         c.expose_helper_method = true
       end
     end
@@ -60,6 +66,7 @@ RSpec.describe Verikloak::Pundit::Configuration do
       Verikloak::Pundit.configure do |c|
         c.resource_client = "rails-api"
         c.role_map = {}
+        c.permission_resource_clients = nil
         c.expose_helper_method = true
       end
     end
@@ -85,8 +92,16 @@ RSpec.describe Verikloak::Pundit::Configuration do
       Verikloak::Pundit.configure do |c|
         c.role_map = {}
         c.realm_roles_path = %w[realm_access roles]
+        c.permission_resource_clients = nil
         c.expose_helper_method = true
       end
     end
+  end
+
+  it "stringifies and de-duplicates permission_resource_clients" do
+    cfg = described_class.new
+    cfg.permission_resource_clients = [:api, :api, "rails-api"]
+    finalized = cfg.dup.finalize!
+    expect(finalized.permission_resource_clients).to eq(%w[api rails-api])
   end
 end

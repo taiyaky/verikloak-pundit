@@ -26,6 +26,10 @@ This document summarizes error handling expectations, fallback behaviors, and op
 
 ## Operational Security Notes
 - Enabling `permission_role_scope = :all_resources` means every client listed in `resource_access` contributes roles to the permission checks. Review the upstream assignments before enabling it so that you do not unintentionally broaden authorization scope.
+- When you enable `:all_resources`, set `permission_resource_clients` to the explicit
+  list of clients that should influence permissions. Leaving it `nil` restores the
+  legacy "trust every client" behavior, which may not be appropriate when tokens are
+  shared across services (for example, via verikloak-bff).
 - Keeping `expose_helper_method` set to `true` exposes `verikloak_claims` directly to views. If the claims carry personal or sensitive information, prefer disabling it (`false`) and limit the data passed to templates.
 
 ## Logging and Debugging Tips
