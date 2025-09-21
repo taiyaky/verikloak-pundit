@@ -4,15 +4,17 @@ module Verikloak
   module Pundit
     # Lightweight wrapper around Keycloak claims for Pundit policies.
     class UserContext
-      attr_reader :claims, :resource_client
+      attr_reader :claims, :resource_client, :config
 
       # Create a new user context from JWT claims.
       #
       # @param claims [Hash] JWT claims issued by Keycloak
       # @param resource_client [String] default resource client name for resource roles
-      def initialize(claims, resource_client: Verikloak::Pundit.config.resource_client)
+      # @param config [Verikloak::Pundit::Configuration] configuration snapshot to use
+      def initialize(claims, resource_client: nil, config: nil)
+        @config = config || Verikloak::Pundit.config
         @claims = claims || {}
-        @resource_client = resource_client.to_s
+        @resource_client = (resource_client || @config.resource_client).to_s
       end
 
       # Subject identifier from claims.
@@ -30,7 +32,7 @@ module Verikloak
       # Realm-level roles from claims based on configuration path.
       # @return [Array<String>]
       def realm_roles
-        path = resolve_path(Verikloak::Pundit.config.realm_roles_path)
+        path = resolve_path(config.realm_roles_path)
         Array(claims.dig(*path))
       end
 
@@ -40,7 +42,7 @@ module Verikloak
       # @return [Array<String>]
       def resource_roles(client = resource_client)
         client = client.to_s
-        path = resolve_path(Verikloak::Pundit.config.resource_roles_path, client: client)
+        path = resolve_path(config.resource_roles_path, client: client)
         Array(claims.dig(*path))
       end
 
@@ -82,7 +84,7 @@ module Verikloak
       def has_permission?(perm) # rubocop:disable Naming/PredicatePrefix
         pr = perm.to_sym
         roles = realm_roles + resource_roles_scope
-        mapped = roles.map { |r| RoleMapper.map(r, Verikloak::Pundit.config) }
+        mapped = roles.map { |r| RoleMapper.map(r, config) }
         mapped.map(&:to_sym).include?(pr)
       end
 
@@ -91,8 +93,9 @@ module Verikloak
       # @param env [Hash] Rack environment
       # @return [UserContext]
       def self.from_env(env)
-        claims = env[Verikloak::Pundit.config.env_claims_key]
-        new(claims)
+        config = Verikloak::Pundit.config
+        claims = env[config.env_claims_key]
+        new(claims, config: config)
       end
 
       private
@@ -108,9 +111,9 @@ module Verikloak
           when Proc
             # Support lambdas that accept (config) or (config, client)
             if seg.arity >= 2
-              seg.call(Verikloak::Pundit.config, client).to_s
+              seg.call(config, client).to_s
             else
-              seg.call(Verikloak::Pundit.config).to_s
+              seg.call(config).to_s
             end
           else
             seg.to_s
@@ -121,7 +124,7 @@ module Verikloak
       # Resolve resource roles based on configured permission scope.
       # @return [Array<String>]
       def resource_roles_scope
-        case Verikloak::Pundit.config.permission_role_scope&.to_sym
+        case config.permission_role_scope&.to_sym
         when :all_resources
           resource_roles_all_clients
         else
@@ -137,7 +140,22 @@ module Verikloak
 
         # Bypass configured path lambda (which targets the default client)
         # and gather roles from all clients explicitly.
-        access.values.flat_map { |entry| Array(entry['roles']) }
+        access.each_with_object([]) do |(client_id, entry), roles|
+          next unless permission_client_allowed?(client_id)
+
+          roles.concat(Array(entry['roles']))
+        end
+      end
+
+      # Check whether the given client is allowed for permission scope.
+      #
+      # @param client_id [String]
+      # @return [Boolean]
+      def permission_client_allowed?(client_id)
+        whitelist = config.permission_resource_clients
+        return true if whitelist.nil?
+
+        whitelist.include?(client_id.to_s)
       end
     end
   end

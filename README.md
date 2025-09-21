@@ -89,11 +89,34 @@ Verikloak::Pundit.configure do |c|
   #                         (enabling this broadens permissions to every resource client;
   #                          review the upstream role assignments before turning it on)
   c.permission_role_scope = :default_resource
+  # Optional whitelist of resource clients when `permission_role_scope = :all_resources`.
+  # Leaving this as nil keeps the legacy "all clients" behavior, while providing
+  # an explicit list (e.g., %w[rails-api verikloak-bff]) limits which clients can
+  # contribute roles to permission checks.
+  c.permission_resource_clients = nil
 
   # Expose `verikloak_claims` to views via helper_method (Rails only)
   c.expose_helper_method = true
 end
 ```
+
+### Working with other Verikloak gems
+
+- **verikloak-bff**: When your Rails application sits behind the BFF, the access
+  token presented to verikloak-pundit typically originates from the BFF
+  (e.g. via the `x-verikloak-user` header). Make sure your Rack stack stores the
+  decoded claims under the same `env_claims_key` configured above (the default
+  `"verikloak.user"` works out of the box with `verikloak-bff >= 0.3`). If the
+  BFF issues tokens for multiple downstream services, set
+  `permission_resource_clients` to the limited list of clients whose roles should
+  affect Rails-side authorization to avoid accidentally inheriting permissions
+  meant for other services.
+- **verikloak-audience**: Audience services often mint resource roles with a
+  service-specific prefix (for example, `audience-service:editor`). Align your
+  `role_map` keys with that naming convention so `user.has_permission?` resolves
+  correctly. If Audience adds its own client entry inside `resource_access`, add
+  that client id to `permission_resource_clients` when you need to consume those
+  roles from Rails.
 
 ## Non-Rails / custom usage
 
@@ -142,6 +165,10 @@ If you find a security vulnerability, please follow the instructions in [SECURIT
 
 ### Operational guidance
 - Enabling `permission_role_scope = :all_resources` pulls roles from every Keycloak client in `resource_access`. Review the granted roles carefully to ensure you are not expanding permissions beyond what the application expects.
+- Combine `permission_role_scope = :all_resources` with `permission_resource_clients`
+  to explicitly opt-in the clients that may contribute permissions. Leaving the
+  whitelist blank (the default) reverts to the legacy behavior of trusting
+  every client in the token.
 - Leaving `expose_helper_method = true` exposes `verikloak_claims` to the Rails view layer. If the claims include personal or sensitive data, consider switching it to `false` and pass only the minimum required information through controller-provided helpers.
 
 ## License

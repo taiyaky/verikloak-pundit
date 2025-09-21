@@ -85,6 +85,7 @@ RSpec.describe Verikloak::Pundit::UserContext do
       Verikloak::Pundit.configure do |c|
         c.role_map = { writer: :write_notes }
         c.permission_role_scope = :all_resources
+        c.permission_resource_clients = nil
       end
 
       ctx = described_class.new(claims2)
@@ -93,6 +94,33 @@ RSpec.describe Verikloak::Pundit::UserContext do
       Verikloak::Pundit.configure do |c|
         c.role_map = {}
         c.permission_role_scope = :default_resource
+        c.permission_resource_clients = nil
+      end
+    end
+  end
+
+  it "can restrict all_resources scope to configured clients" do
+    begin
+      claims2 = {
+        "realm_access" => { "roles" => [] },
+        "resource_access" => {
+          "rails-api" => { "roles" => [] },
+          "another" => { "roles" => ["writer"] }
+        }
+      }
+      Verikloak::Pundit.configure do |c|
+        c.role_map = { writer: :write_notes }
+        c.permission_role_scope = :all_resources
+        c.permission_resource_clients = ["rails-api"]
+      end
+
+      ctx = described_class.new(claims2)
+      expect(ctx.has_permission?(:write_notes)).to be false
+    ensure
+      Verikloak::Pundit.configure do |c|
+        c.role_map = {}
+        c.permission_role_scope = :default_resource
+        c.permission_resource_clients = nil
       end
     end
   end
@@ -175,6 +203,31 @@ RSpec.describe Verikloak::Pundit::UserContext do
       expect(ctx.has_permission?(:write_notes)).to be true
     ensure
       Verikloak::Pundit.configure { |c| c.role_map = {} }
+    end
+  end
+
+  it "uses a consistent configuration snapshot for its lifetime" do
+    begin
+      Verikloak::Pundit.configure do |c|
+        c.role_map = { admin: :manage_all }
+      end
+      ctx = described_class.new(claims)
+      expect(ctx.has_permission?(:manage_all)).to be true
+
+      # Change global configuration after context construction
+      Verikloak::Pundit.configure do |c|
+        c.role_map = {}
+      end
+
+      # Previously granted permission should still be mapped because the
+      # context holds a snapshot of the original configuration.
+      expect(ctx.has_permission?(:manage_all)).to be true
+    ensure
+      Verikloak::Pundit.configure do |c|
+        c.role_map = {}
+        c.permission_role_scope = :default_resource
+        c.permission_resource_clients = nil
+      end
     end
   end
 end
