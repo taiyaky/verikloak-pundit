@@ -11,7 +11,6 @@ module Verikloak
         desc 'Creates Verikloak Pundit initializer and a base ApplicationPolicy (optional).'
 
         # Skip creating application_policy.rb
-        # @return [Boolean]
         class_option :skip_policy, type: :boolean, default: false, desc: 'Do not create application_policy.rb'
 
         # Create the initializer file under config/initializers.
