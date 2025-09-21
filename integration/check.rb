@@ -52,7 +52,8 @@ raise 'UserContext.from_env lost permissions' unless user_from_env.has_permissio
 Verikloak::Pundit.configure do |config|
   config.permission_role_scope = :all_resources
 end
-raise 'UserContext failed to include roles from all resources' unless user.has_permission?(:publish_insights)
+user_all_resources = Verikloak::Pundit::UserContext.new(claims)
+raise 'UserContext failed to include roles from all resources' unless user_all_resources.has_permission?(:publish_insights)
 
 # Helper exposure should respect configuration flag
 klass = Class.new do
