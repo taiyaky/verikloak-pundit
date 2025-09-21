@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0] - 2025-09-21
+
+### Added
+- Allow `permission_role_scope = :all_resources` to respect the new
+  `permission_resource_clients` whitelist so only approved clients contribute
+  to permission checks.
+- Document verikloak-bff and verikloak-audience integration patterns,
+  including `env_claims_key` examples and role naming guidance.
+
+### Changed
+- `UserContext` now snapshots the configuration at initialization to keep
+  behavior consistent even if `Verikloak::Pundit.configure` runs mid-request.
+- Bump the minimum `verikloak` runtime dependency to `>= 0.1.5` to pick up
+  client whitelist support.
+
 ## [0.1.1] - 2025-09-20
 
 ### Added
