@@ -115,29 +115,33 @@ module Verikloak
         dup_string(value).freeze
       end
 
-      # Recursively duplicate a hash, cloning nested structures so the copy can
-      # be mutated safely.
+      # Deep duplicate any object, handling nested structures recursively.
+      #
+      # @param value [Object] The value to duplicate
+      # @return [Object] A deep copy of the value
+      def deep_dup(value)
+        case value
+        when nil
+          nil
+        when Hash
+          value.each_with_object({}) do |(key, element), copy|
+            copy[deep_dup(key)] = deep_dup(element)
+          end
+        when Array
+          value.map { |element| deep_dup(element) }
+        when String
+          value.dup
+        else
+          duplicable?(value) ? value.dup : value
+        end
+      end
+
+      # Duplicate a hash using deep duplication.
       #
       # @param value [Hash, nil]
       # @return [Hash, nil]
       def dup_hash(value)
-        return nil if value.nil?
-
-        copy = value.dup
-        copy.each do |key, element|
-          copy[key] =
-            case element
-            when Hash
-              dup_hash(element)
-            when Array
-              dup_array(element)
-            when String
-              dup_string(element)
-            else
-              duplicable?(element) ? element.dup : element
-            end
-        end
-        copy
+        deep_dup(value)
       end
 
       # Duplicate a string guardingly, returning `nil` when no value is present.
@@ -145,33 +149,15 @@ module Verikloak
       # @param value [String, nil]
       # @return [String, nil]
       def dup_string(value)
-        return nil if value.nil?
-
-        value.dup
+        deep_dup(value)
       end
 
-      # Recursively duplicate an array while copying nested structures.
+      # Duplicate an array using deep duplication.
       #
       # @param value [Array, nil]
       # @return [Array, nil]
       def dup_array(value)
-        return nil if value.nil?
-
-        copy = value.dup
-        return copy unless copy.respond_to?(:map)
-
-        copy.map do |element|
-          case element
-          when Hash
-            dup_hash(element)
-          when Array
-            dup_array(element)
-          when String
-            dup_string(element)
-          else
-            duplicable?(element) ? element.dup : element
-          end
-        end
+        deep_dup(value)
       end
 
       # Check whether a value can be safely duplicated using `dup`.

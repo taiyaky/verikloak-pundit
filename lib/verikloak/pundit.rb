@@ -4,6 +4,8 @@
 require_relative 'pundit/version'
 require_relative 'pundit/configuration'
 require_relative 'pundit/role_mapper'
+require_relative 'pundit/delegations'
+require_relative 'pundit/claim_utils'
 require_relative 'pundit/user_context'
 require_relative 'pundit/helpers'
 require_relative 'pundit/controller'
@@ -35,6 +37,15 @@ module Verikloak
       def config
         config_mutex.synchronize do
           @config ||= Configuration.new.finalize!
+        end
+      end
+
+      # Reset configuration to defaults. Useful for test suites.
+      #
+      # @return [void]
+      def reset!
+        config_mutex.synchronize do
+          @config = nil
         end
       end
 

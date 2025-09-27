@@ -3,34 +3,25 @@
 module Verikloak
   module Pundit
     # Policy mixin to delegate common helpers to the `user` context.
+    #
+    # @deprecated Use {Delegations} directly instead. This module will be removed in v1.0.0.
     module Policy
+      # Warn consumers when the deprecated policy mixin is included.
+      #
+      # @param base [Module] module or class including this policy mixin
+      # @return [void]
       def self.included(base)
+        warn '[DEPRECATED] Verikloak::Pundit::Policy is deprecated. ' \
+             'Include Verikloak::Pundit::Delegations directly instead. ' \
+             'This will be removed in v1.0.0.'
         base.extend(ClassMethods)
+        super
       end
 
       # Placeholder for future class-level helpers
       module ClassMethods; end
 
-      # Check whether the user has a realm role.
-      # @param role [String, Symbol]
-      # @return [Boolean]
-      def has_role?(role) = user.has_role?(role) # rubocop:disable Naming/PredicatePrefix
-
-      # Check whether the user belongs to a group (alias to role).
-      # @param group [String, Symbol]
-      # @return [Boolean]
-      def in_group?(group) = user.in_group?(group)
-
-      # Check whether the user has a role for a specific resource client.
-      # @param client [String, Symbol]
-      # @param role [String, Symbol]
-      # @return [Boolean]
-      def resource_role?(client, role) = user.resource_role?(client, role)
-
-      # Check whether the user has a mapped permission.
-      # @param perm [String, Symbol]
-      # @return [Boolean]
-      def has_permission?(perm) = user.has_permission?(perm) # rubocop:disable Naming/PredicatePrefix
+      include Delegations
     end
   end
 end

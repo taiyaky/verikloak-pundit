@@ -1,9 +1,18 @@
 # frozen_string_literal: true
 
+require 'set'
+
 module Verikloak
   module Pundit
     # Lightweight wrapper around Keycloak claims for Pundit policies.
     class UserContext
+      # JWT claim keys used internally
+      CLAIM_SUB = 'sub'
+      CLAIM_EMAIL = 'email'
+      CLAIM_PREFERRED_USERNAME = 'preferred_username'
+      CLAIM_RESOURCE_ACCESS = 'resource_access'
+      CLAIM_ROLES = 'roles'
+
       attr_reader :claims, :resource_client, :config
 
       # Create a new user context from JWT claims.
@@ -13,27 +22,29 @@ module Verikloak
       # @param config [Verikloak::Pundit::Configuration] configuration snapshot to use
       def initialize(claims, resource_client: nil, config: nil)
         @config = config || Verikloak::Pundit.config
-        @claims = claims || {}
+        @claims = ClaimUtils.normalize(claims)
         @resource_client = (resource_client || @config.resource_client).to_s
       end
 
       # Subject identifier from claims.
       # @return [String, nil]
       def sub
-        claims['sub']
+        claims[CLAIM_SUB]
       end
 
       # Email or preferred username from claims.
       # @return [String, nil]
       def email
-        claims['email'] || claims['preferred_username']
+        claims[CLAIM_EMAIL] || claims[CLAIM_PREFERRED_USERNAME]
       end
 
       # Realm-level roles from claims based on configuration path.
       # @return [Array<String>]
       def realm_roles
-        path = resolve_path(config.realm_roles_path)
-        Array(claims.dig(*path))
+        @realm_roles ||= begin
+          path = resolve_path(config.realm_roles_path)
+          Array(claims.dig(*path)).map(&:to_s).uniq.freeze
+        end
       end
 
       # Resource-level roles for a given client from claims based on configuration path.
@@ -42,8 +53,10 @@ module Verikloak
       # @return [Array<String>]
       def resource_roles(client = resource_client)
         client = client.to_s
-        path = resolve_path(config.resource_roles_path, client: client)
-        Array(claims.dig(*path))
+        (@resource_roles_cache ||= {})[client] ||= begin
+          path = resolve_path(config.resource_roles_path, client: client)
+          Array(claims.dig(*path)).map(&:to_s).uniq.freeze
+        end
       end
 
       # Check whether the user has a realm role.
@@ -51,8 +64,7 @@ module Verikloak
       # @param role [String, Symbol]
       # @return [Boolean]
       def has_role?(role) # rubocop:disable Naming/PredicatePrefix
-        r = role.to_s
-        realm_roles.include?(r)
+        realm_roles.include?(role.to_s)
       end
 
       # Alias to has_role? to align with group-based naming.
@@ -69,9 +81,7 @@ module Verikloak
       # @param role [String, Symbol]
       # @return [Boolean]
       def resource_role?(client, role)
-        client = client.to_s
-        r = role.to_s
-        resource_roles(client).include?(r)
+        resource_roles(client).include?(role.to_s)
       end
 
       # Check whether the user has a mapped permission.
@@ -82,10 +92,7 @@ module Verikloak
       # @param perm [String, Symbol] permission to check
       # @return [Boolean]
       def has_permission?(perm) # rubocop:disable Naming/PredicatePrefix
-        pr = perm.to_sym
-        roles = realm_roles + resource_roles_scope
-        mapped = roles.map { |r| RoleMapper.map(r, config) }
-        mapped.map(&:to_sym).include?(pr)
+        permission_set.include?(normalize_to_symbol(perm))
       end
 
       # Build a user context from Rack env using configured claims key.
@@ -94,7 +101,7 @@ module Verikloak
       # @return [UserContext]
       def self.from_env(env)
         config = Verikloak::Pundit.config
-        claims = env[config.env_claims_key]
+        claims = env&.fetch(config.env_claims_key, nil)
         new(claims, config: config)
       end
 
@@ -135,15 +142,18 @@ module Verikloak
       # Collect resource roles from all clients under resource_access.
       # @return [Array<String>]
       def resource_roles_all_clients
-        access = claims['resource_access']
-        return [] unless access.is_a?(Hash)
+        @resource_roles_all_clients ||= begin
+          access = claims[CLAIM_RESOURCE_ACCESS]
+          if access.is_a?(Hash)
+            roles = access.each_with_object([]) do |(client_id, entry), acc|
+              next unless permission_client_allowed?(client_id)
 
-        # Bypass configured path lambda (which targets the default client)
-        # and gather roles from all clients explicitly.
-        access.each_with_object([]) do |(client_id, entry), roles|
-          next unless permission_client_allowed?(client_id)
-
-          roles.concat(Array(entry['roles']))
+              acc.concat(Array(entry[CLAIM_ROLES]))
+            end
+            roles.map(&:to_s).uniq.freeze
+          else
+            [].freeze
+          end
         end
       end
 
@@ -156,6 +166,52 @@ module Verikloak
         return true if whitelist.nil?
 
         whitelist.include?(client_id.to_s)
+      end
+
+      # Cached permission lookup set combining realm and configured resource scopes.
+      # @return [Set<Symbol>]
+      def permission_set
+        @permission_set ||= build_permission_set.freeze
+      end
+
+      # Build the permission set from roles and role mappings.
+      # @return [Set<Symbol>]
+      def build_permission_set
+        roles = realm_roles + resource_roles_scope
+        permissions = Set.new
+
+        roles.each do |role|
+          mapped_permission = RoleMapper.map(role, config)
+          symbol_permission = normalize_to_symbol(mapped_permission)
+          permissions << symbol_permission if symbol_permission
+        end
+
+        permissions
+      end
+
+      # Normalize a value to a symbol, handling various types safely.
+      # @param value [Object] The value to convert to a symbol
+      # @return [Symbol, nil] The symbol representation, or nil if not convertible
+      def normalize_to_symbol(value)
+        case value
+        when Symbol
+          value
+        when String
+          return nil if value.empty?
+
+          value.to_sym
+        else
+          if value.respond_to?(:to_sym)
+            value.to_sym
+          elsif value.respond_to?(:to_s)
+            text = value.to_s
+            return nil if text.empty?
+
+            text.to_sym
+          end
+        end
+      rescue StandardError
+        nil
       end
     end
   end
