@@ -101,7 +101,7 @@ module Verikloak
       # @return [UserContext]
       def self.from_env(env)
         config = Verikloak::Pundit.config
-        claims = env&.[](config.env_claims_key)
+        claims = env&.fetch(config.env_claims_key, nil)
         new(claims, config: config)
       end
 
