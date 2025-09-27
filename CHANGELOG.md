@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.1] - 2025-09-22
+
+### Added
+- `Verikloak::Pundit.reset!` helper to restore default configuration, easing test teardown.
+- `Verikloak::Pundit::Delegations` shared module consolidating role and permission helper methods.
+- `Verikloak::Pundit::ClaimUtils` for consistent claim normalization across entry points.
+
+### Changed
+- `UserContext` memoizes role lookups and caches mapped permissions to reduce repeated work inside policies.
+- `UserContext` now normalizes inputs via `ClaimUtils` and supports symbolized permission comparison for mixed role map values.
+- Configuration duplication derives from a unified `deep_dup`, ensuring hash keys are copied and nested structures remain isolated.
+- README documents the new delegations module, configuration reset helper, and deprecation guidance.
+
+### Deprecated
+- `Verikloak::Pundit::Helpers` and `Verikloak::Pundit::Policy`; include `Verikloak::Pundit::Delegations` directly ahead of their removal in v1.0.0.
+
 ## [0.2.0] - 2025-09-21
 
 ### Added
