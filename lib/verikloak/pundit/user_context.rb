@@ -135,7 +135,7 @@ module Verikloak
         when :all_resources
           resource_roles_all_clients
         else
-          resource_roles(resource_client)
+          resource_roles
         end
       end
 
