@@ -124,8 +124,8 @@ module Verikloak
         when nil
           nil
         when Hash
-          value.transform_values do |element|
-            deep_dup(element)
+          value.each_with_object({}) do |(key, element), copy|
+            copy[deep_dup(key)] = deep_dup(element)
           end
         when Array
           value.map { |element| deep_dup(element) }
