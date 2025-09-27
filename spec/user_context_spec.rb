@@ -3,6 +3,10 @@
 require "spec_helper"
 
 RSpec.describe Verikloak::Pundit::UserContext do
+  after do
+    Verikloak::Pundit.reset!
+  end
+
   let(:claims) do
     {
       "sub" => "abc",
@@ -24,105 +28,73 @@ RSpec.describe Verikloak::Pundit::UserContext do
   end
 
   it "respects configurable resource_roles_path with client override" do
-    begin
-      # Configure path to accept (config, client) for dynamic segment
-      Verikloak::Pundit.configure do |c|
-        c.resource_client = "rails-api"
-        c.resource_roles_path = [
-          "resource_access",
-          ->(cfg, client) { client || cfg.resource_client },
-          "roles"
-        ]
-      end
-
-      test_claims = {
-        "resource_access" => {
-          "another" => { "roles" => ["writer"] }
-        }
-      }
-      ctx = described_class.new(test_claims)
-      expect(ctx.resource_role?(:another, :writer)).to be true
-    ensure
-      # restore defaults to avoid leaking config between examples
-      Verikloak::Pundit.configure do |c|
-        c.resource_client = "rails-api"
-        c.resource_roles_path = ["resource_access", ->(cfg){ cfg.resource_client }, "roles"]
-      end
+    # Configure path to accept (config, client) for dynamic segment
+    Verikloak::Pundit.configure do |c|
+      c.resource_client = "rails-api"
+      c.resource_roles_path = [
+        "resource_access",
+        ->(cfg, client) { client || cfg.resource_client },
+        "roles"
+      ]
     end
+
+    test_claims = {
+      "resource_access" => {
+        "another" => { "roles" => ["writer"] }
+      }
+    }
+    ctx = described_class.new(test_claims)
+    expect(ctx.resource_role?(:another, :writer)).to be true
   end
 
   it "maps permissions from realm and resource roles" do
-    begin
-      Verikloak::Pundit.configure do |c|
-        c.role_map = {
-          admin: :manage_all,
-          editor: :write_notes
-        }
-        c.resource_client = "rails-api"
-      end
-
-      ctx = described_class.new(claims)
-      expect(ctx.has_permission?(:manage_all)).to be true      # from realm role :admin
-      expect(ctx.has_permission?("write_notes")).to be true    # from resource role :editor
-    ensure
-      Verikloak::Pundit.configure do |c|
-        c.role_map = {}
-        c.resource_client = "rails-api"
-        c.permission_role_scope = :default_resource
-      end
+    Verikloak::Pundit.configure do |c|
+      c.role_map = {
+        admin: :manage_all,
+        editor: :write_notes
+      }
+      c.resource_client = "rails-api"
     end
+
+    ctx = described_class.new(claims)
+    expect(ctx.has_permission?(:manage_all)).to be true      # from realm role :admin
+    expect(ctx.has_permission?("write_notes")).to be true    # from resource role :editor
   end
 
   it "can include roles from all resource clients when opted in" do
-    begin
-      claims2 = {
-        "realm_access" => { "roles" => [] },
-        "resource_access" => {
-          "rails-api" => { "roles" => [] },
-          "another" => { "roles" => ["writer"] }
-        }
+    claims2 = {
+      "realm_access" => { "roles" => [] },
+      "resource_access" => {
+        "rails-api" => { "roles" => [] },
+        "another" => { "roles" => ["writer"] }
       }
-      Verikloak::Pundit.configure do |c|
-        c.role_map = { writer: :write_notes }
-        c.permission_role_scope = :all_resources
-        c.permission_resource_clients = nil
-      end
-
-      ctx = described_class.new(claims2)
-      expect(ctx.has_permission?(:write_notes)).to be true
-    ensure
-      Verikloak::Pundit.configure do |c|
-        c.role_map = {}
-        c.permission_role_scope = :default_resource
-        c.permission_resource_clients = nil
-      end
+    }
+    Verikloak::Pundit.configure do |c|
+      c.role_map = { writer: :write_notes }
+      c.permission_role_scope = :all_resources
+      c.permission_resource_clients = nil
     end
+
+    ctx = described_class.new(claims2)
+    expect(ctx.has_permission?(:write_notes)).to be true
   end
 
   it "can restrict all_resources scope to configured clients" do
-    begin
-      claims2 = {
-        "realm_access" => { "roles" => [] },
-        "resource_access" => {
-          "rails-api" => { "roles" => [] },
-          "another" => { "roles" => ["writer"] }
-        }
+    claims2 = {
+      "realm_access" => { "roles" => [] },
+      "resource_access" => {
+        "rails-api" => { "roles" => [] },
+        "another" => { "roles" => ["writer"] }
       }
-      Verikloak::Pundit.configure do |c|
-        c.role_map = { writer: :write_notes }
-        c.permission_role_scope = :all_resources
-        c.permission_resource_clients = ["rails-api"]
-      end
-
-      ctx = described_class.new(claims2)
-      expect(ctx.has_permission?(:write_notes)).to be false
-    ensure
-      Verikloak::Pundit.configure do |c|
-        c.role_map = {}
-        c.permission_role_scope = :default_resource
-        c.permission_resource_clients = nil
-      end
+    }
+    Verikloak::Pundit.configure do |c|
+      c.role_map = { writer: :write_notes }
+      c.permission_role_scope = :all_resources
+      c.permission_resource_clients = ["rails-api"]
     end
+
+    ctx = described_class.new(claims2)
+    expect(ctx.has_permission?(:write_notes)).to be false
   end
 
   it "falls back to preferred_username for email when email missing" do
@@ -139,38 +111,24 @@ RSpec.describe Verikloak::Pundit::UserContext do
   end
 
   it "has_permission? returns false when unmapped and unmatched" do
-    begin
-      Verikloak::Pundit.configure { |cfg| cfg.role_map = {} }
-      ctx = described_class.new(claims)
-      expect(ctx.has_permission?(:something_else)).to be false
-    ensure
-      Verikloak::Pundit.configure { |cfg| cfg.role_map = {} }
-    end
+    Verikloak::Pundit.configure { |cfg| cfg.role_map = {} }
+    ctx = described_class.new(claims)
+    expect(ctx.has_permission?(:something_else)).to be false
   end
 
   it "respects realm_roles_path customization" do
-    begin
-      Verikloak::Pundit.configure do |cfg|
-        cfg.realm_roles_path = ["roles"]
-      end
-      c = { "roles" => ["alpha"] }
-      ctx = described_class.new(c)
-      expect(ctx.realm_roles).to eq(["alpha"])
-    ensure
-      Verikloak::Pundit.configure do |cfg|
-        cfg.realm_roles_path = %w[realm_access roles]
-      end
+    Verikloak::Pundit.configure do |cfg|
+      cfg.realm_roles_path = ["roles"]
     end
+    c = { "roles" => ["alpha"] }
+    ctx = described_class.new(c)
+    expect(ctx.realm_roles).to eq(["alpha"])
   end
 
   it "uses default resource_client when none given" do
-    begin
-      Verikloak::Pundit.configure { |cfg| cfg.resource_client = "rails-api" }
-      ctx = described_class.new(claims)
-      expect(ctx.resource_roles).to include("editor")
-    ensure
-      Verikloak::Pundit.configure { |cfg| cfg.resource_client = "rails-api" }
-    end
+    Verikloak::Pundit.configure { |cfg| cfg.resource_client = "rails-api" }
+    ctx = described_class.new(claims)
+    expect(ctx.resource_roles).to include("editor")
   end
 
   it "returns empty resource roles when path missing" do
@@ -189,45 +147,45 @@ RSpec.describe Verikloak::Pundit::UserContext do
     expect(ctx.has_permission?(:anything)).to be false
   end
 
-  it "supports role_map with mixed key/value types" do
-    begin
-      Verikloak::Pundit.configure do |c|
-        c.role_map = { 'admin': 'manage_all', editor: :write_notes }
+  it "normalizes claim-like objects responding to to_hash" do
+    claim_like = Struct.new(:data) do
+      def to_hash
+        { "sub" => "123", "realm_access" => { "roles" => ["viewer"] } }
       end
-      c2 = {
-        'realm_access' => { 'roles' => ['admin'] },
-        'resource_access' => { 'rails-api' => { 'roles' => ['editor'] } }
-      }
-      ctx = described_class.new(c2)
-      expect(ctx.has_permission?(:manage_all)).to be true
-      expect(ctx.has_permission?(:write_notes)).to be true
-    ensure
-      Verikloak::Pundit.configure { |c| c.role_map = {} }
+    end.new(nil)
+
+    ctx = described_class.new(claim_like)
+    expect(ctx.sub).to eq("123")
+    expect(ctx.has_role?(:viewer)).to be true
+  end
+
+  it "supports role_map with mixed key/value types" do
+    Verikloak::Pundit.configure do |c|
+      c.role_map = { 'admin': 'manage_all', editor: :write_notes }
     end
+    c2 = {
+      'realm_access' => { 'roles' => ['admin'] },
+      'resource_access' => { 'rails-api' => { 'roles' => ['editor'] } }
+    }
+    ctx = described_class.new(c2)
+    expect(ctx.has_permission?(:manage_all)).to be true
+    expect(ctx.has_permission?(:write_notes)).to be true
   end
 
   it "uses a consistent configuration snapshot for its lifetime" do
-    begin
-      Verikloak::Pundit.configure do |c|
-        c.role_map = { admin: :manage_all }
-      end
-      ctx = described_class.new(claims)
-      expect(ctx.has_permission?(:manage_all)).to be true
-
-      # Change global configuration after context construction
-      Verikloak::Pundit.configure do |c|
-        c.role_map = {}
-      end
-
-      # Previously granted permission should still be mapped because the
-      # context holds a snapshot of the original configuration.
-      expect(ctx.has_permission?(:manage_all)).to be true
-    ensure
-      Verikloak::Pundit.configure do |c|
-        c.role_map = {}
-        c.permission_role_scope = :default_resource
-        c.permission_resource_clients = nil
-      end
+    Verikloak::Pundit.configure do |c|
+      c.role_map = { admin: :manage_all }
     end
+    ctx = described_class.new(claims)
+    expect(ctx.has_permission?(:manage_all)).to be true
+
+    # Change global configuration after context construction
+    Verikloak::Pundit.configure do |c|
+      c.role_map = {}
+    end
+
+    # Previously granted permission should still be mapped because the
+    # context holds a snapshot of the original configuration.
+    expect(ctx.has_permission?(:manage_all)).to be true
   end
 end

@@ -88,11 +88,6 @@ end
 raise 'Controller exposed helper despite being disabled' if klass.helper_method_calls
 
 # Restore defaults after integration checks
-Verikloak::Pundit.configure do |config|
-  config.resource_client = 'rails-api'
-  config.role_map = {}
-  config.permission_role_scope = :default_resource
-  config.expose_helper_method = true
-end
+Verikloak::Pundit.reset!
 
 puts 'verikloak + verikloak-rails integration check passed'

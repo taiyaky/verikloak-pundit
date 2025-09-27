@@ -14,7 +14,7 @@ Pundit integration for the **Verikloak** family. This gem maps **Keycloak roles*
 ## Features
 
 - **UserContext**: lightweight wrapper around JWT claims
-- **Helpers**: `has_role?`, `in_group?`, `resource_role?(client, role)`
+- **Delegations**: `has_role?`, `in_group?`, `resource_role?(client, role)` helpers for controllers and policies
 - **RoleMapper**: optional map from Keycloak roles → domain permissions
 - **Controller integration**: `pundit_user` provider for Rails controllers
 - **Generator**: `rails g verikloak:pundit:install` creates initializer + policy template (with `has_permission?` support for realm roles plus the configured resource scope)
@@ -138,6 +138,14 @@ To run the test suite locally:
 ```bash
 docker compose run --rm dev rspec
 docker compose run --rm dev rubocop -a
+```
+
+When writing specs, call `Verikloak::Pundit.reset!` in your test teardown to ensure configuration changes do not leak between examples:
+
+```ruby
+RSpec.configure do |config|
+  config.after { Verikloak::Pundit.reset! }
+end
 ```
 
 An additional integration check exercises the gem together with the latest `verikloak` and `verikloak-rails` releases. This runs in CI automatically, and you can execute it locally with:
