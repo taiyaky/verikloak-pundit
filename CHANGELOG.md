@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clarified the dummy generator base `desc` signature to mirror the Rails API and avoid warning noise in tests.
 - Stubbed helper and policy spec deprecation warnings so suite output stays clean while still asserting the message payload.
 
-## [0.2.1] - 2025-09-22
+## [0.2.1] - 2025-09-27
 
 ### Added
 - `Verikloak::Pundit.reset!` helper to restore default configuration, easing test teardown.
