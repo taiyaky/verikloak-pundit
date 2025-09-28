@@ -113,8 +113,8 @@ RSpec.describe 'Verikloak::Pundit::Generators::InstallGenerator' do
         gen.create_initializer
         gen.create_application_policy
 
-        expect(Dir).to exist('config/initializers')
-        expect(Dir).to exist('app/policies')
+        expect(Dir.exist?('config/initializers')).to be true
+        expect(Dir.exist?('app/policies')).to be true
       end
     end
   end
