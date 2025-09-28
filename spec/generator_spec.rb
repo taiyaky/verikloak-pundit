@@ -12,7 +12,7 @@ RSpec.describe 'Verikloak::Pundit::Generators::InstallGenerator' do
           @source_root
         end
 
-        def desc(*); end
+        def desc(_description = nil); end
         def class_option(*); end
       end
 
