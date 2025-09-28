@@ -35,8 +35,14 @@ RSpec.describe 'Verikloak::Pundit::Generators::InstallGenerator' do
     stub_const('Rails::Generators', Module.new)
     stub_const('Rails::Generators::Base', base_class)
 
-    allow(Kernel).to receive(:require).and_call_original
-    allow(Kernel).to receive(:require).with('rails/generators').and_return(true)
+    original_require = Kernel.instance_method(:require)
+    allow_any_instance_of(Object).to receive(:require) do |instance, path|
+      if path == 'rails/generators'
+        true
+      else
+        original_require.bind(instance).call(path)
+      end
+    end
 
     if defined?(Verikloak::Pundit::Generators::InstallGenerator)
       Verikloak::Pundit::Generators.send(:remove_const, :InstallGenerator)
