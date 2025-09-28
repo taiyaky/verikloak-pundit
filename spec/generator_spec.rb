@@ -1,10 +1,13 @@
 # frozen_string_literal: true
 require "spec_helper"
 require "fileutils"
+require "tmpdir"
 
 RSpec.describe 'Verikloak::Pundit::Generators::InstallGenerator' do
   before do
     # Provide a fake Rails::Generators base with minimal API
+    stub_const('Thor::Error', Class.new(StandardError))
+
     base_class = Class.new do
       class << self
         def source_root(path = nil)
@@ -26,6 +29,7 @@ RSpec.describe 'Verikloak::Pundit::Generators::InstallGenerator' do
 
       def template(src, dest)
         src_path = File.join(self.class.source_root, src)
+        raise Thor::Error, "Could not find template #{src}" unless File.exist?(src_path)
         FileUtils.mkdir_p(File.dirname(dest))
         FileUtils.cp(src_path, dest)
       end
