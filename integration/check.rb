@@ -2,6 +2,10 @@
 
 require 'bundler/setup'
 
+# Load activesupport first to ensure delegate_missing_to is available
+# before railties is loaded by verikloak-rails
+require 'active_support/all'
+
 require 'verikloak'
 
 begin
