@@ -133,8 +133,8 @@ Create a custom UserContext that holds both JWT claims and a database user refer
 class AppUserContext < Verikloak::Pundit::UserContext
   attr_reader :db_user
 
-  def initialize(claims, db_user: nil, config: nil)
-    super(claims, config: config)
+  def initialize(claims, db_user: nil, resource_client: nil, config: nil)
+    super(claims, resource_client: resource_client, config: config)
     @db_user = db_user
   end
 
