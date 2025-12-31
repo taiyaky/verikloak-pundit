@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.3] - 2025-12-31
+
+### Added
+- **Database User Integration Guide**: New README section documenting the custom `UserContext` pattern for combining JWT claims with database user models, including controller setup and policy examples.
+- **Delegations Module Documentation**: Comprehensive usage guide for `Verikloak::Pundit::Delegations`, covering requirements, custom `UserContext` compatibility, and nil user handling patterns.
+
+### Changed
+- Clarified controller setup examples to use `Verikloak::Pundit::Controller` (this gem) instead of `Verikloak::Rails::Controller` (verikloak-rails gem).
+- Added explicit notes about method origins (`verikloak_claims` vs `current_user_claims`) for users combining multiple Verikloak gems.
+- Enhanced nil user handling documentation with `safe_has_role?` helper pattern for public endpoints.
+- Bump minimum `verikloak` dependency from `>= 0.2.0` to `>= 0.3.0` to align with latest upstream releases.
+- Update Ruby version to 3.4.8 in development environment.
+
 ## [0.2.2] - 2025-09-28
 
 ### Changed
