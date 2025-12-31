@@ -118,6 +118,177 @@ end
   that client id to `permission_resource_clients` when you need to consume those
   roles from Rails.
 
+## Integrating with Database User Models
+
+### Overview
+
+`Verikloak::Pundit::UserContext` wraps JWT claims for use in Pundit policies. However, real applications often need to access database User models for additional attributes (e.g., `user.admin?`, `user.organization_id`).
+
+### Custom UserContext Pattern
+
+Create a custom UserContext that holds both JWT claims and a database user reference:
+
+```ruby
+# app/lib/app_user_context.rb
+class AppUserContext < Verikloak::Pundit::UserContext
+  attr_reader :db_user
+
+  def initialize(claims, db_user: nil, config: nil)
+    super(claims, config: config)
+    @db_user = db_user
+  end
+
+  # Delegate database user methods
+  delegate :admin?, :organization_id, :active?, to: :db_user, allow_nil: true
+
+  # Custom authorization helpers
+  def owns?(record)
+    return false unless db_user && record
+    record.respond_to?(:user_id) && db_user.id == record.user_id
+  end
+
+  def same_organization?(record)
+    return false unless db_user && record
+    record.respond_to?(:organization_id) && db_user.organization_id == record.organization_id
+  end
+end
+```
+
+### Controller Setup
+
+Override `pundit_user` in your ApplicationController. This example assumes you are using `verikloak-rails`, which provides `current_user_claims` and related helpers:
+
+```ruby
+# app/controllers/application_controller.rb
+class ApplicationController < ActionController::API
+  include Pundit::Authorization
+  include Verikloak::Pundit::Controller  # Provides pundit_user and verikloak_claims
+
+  # If using verikloak-rails for JWT verification:
+  # include Verikloak::Rails::Controller  # Provides current_user_claims, current_subject, etc.
+
+  def pundit_user
+    @pundit_user ||= AppUserContext.new(
+      verikloak_claims,  # From Verikloak::Pundit::Controller
+      db_user: find_or_create_current_user,
+      config: Verikloak::Pundit.config
+    )
+  end
+
+  private
+
+  def find_or_create_current_user
+    # Extract subject from claims
+    sub = verikloak_claims&.dig('sub')
+    return nil unless sub
+
+    User.find_or_create_by(sub: sub) do |user|
+      user.email = verikloak_claims&.dig('email')
+      user.name = verikloak_claims&.dig('name')
+    end
+  end
+end
+```
+
+> **Note:** If you are also using `verikloak-rails`, you can use its `current_user_claims` method instead of `verikloak_claims`. Both provide access to the JWT claims from the Rack environment.
+
+### Policy Example
+
+Now your policies can use both JWT claims and database attributes:
+
+```ruby
+# app/policies/document_policy.rb
+class DocumentPolicy < ApplicationPolicy
+  def show?
+    # Combine JWT roles with database attributes
+    user.has_role?(:admin) || user.owns?(record) || user.same_organization?(record)
+  end
+
+  def update?
+    user.admin? || user.owns?(record)  # Uses delegated db_user.admin?
+  end
+
+  def destroy?
+    user.has_role?(:admin) && user.active?  # JWT role + DB attribute
+  end
+end
+```
+
+## Delegations Module
+
+### Overview
+
+`Verikloak::Pundit::Delegations` provides shortcut methods for role and permission checks in policies.
+
+### Usage
+
+Include in your ApplicationPolicy to access helpers directly:
+
+```ruby
+class ApplicationPolicy
+  include Verikloak::Pundit::Delegations
+
+  # Now you can use:
+  # - has_role?(:admin)        instead of user.has_role?(:admin)
+  # - in_group?(:editors)      instead of user.in_group?(:editors)
+  # - resource_role?(client, role)
+  # - has_permission?(:manage_all)
+end
+```
+
+### Requirements
+
+- The policy must have a `user` method that returns a `Verikloak::Pundit::UserContext` (or subclass)
+- If `user` is `nil`, delegation methods will raise `NoMethodError`
+
+### Compatibility with Custom UserContext
+
+Delegations work with any class that inherits from `Verikloak::Pundit::UserContext`:
+
+```ruby
+# Works with AppUserContext (shown above)
+class DocumentPolicy < ApplicationPolicy
+  include Verikloak::Pundit::Delegations
+
+  def update?
+    has_role?(:admin) || has_permission?(:write_documents)
+  end
+end
+```
+
+### Handling nil user
+
+For policies that may receive `nil` users (e.g., public endpoints), you **must** guard against nil before calling delegation methods:
+
+```ruby
+class PublicDocumentPolicy < ApplicationPolicy
+  def show?
+    return true if record.public?
+    return false unless user  # Guard against nil user before using delegations
+
+    has_role?(:viewer)
+  end
+end
+```
+
+Alternatively, create a helper method in your `ApplicationPolicy`:
+
+```ruby
+class ApplicationPolicy
+  include Verikloak::Pundit::Delegations
+
+  private
+
+  def authenticated?
+    !user.nil?
+  end
+
+  def safe_has_role?(role)
+    authenticated? && has_role?(role)
+  end
+end
+```
+
 ## Non-Rails / custom usage
 
 ```ruby

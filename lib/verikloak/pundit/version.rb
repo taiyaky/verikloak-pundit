@@ -5,6 +5,6 @@ module Verikloak
     # Gem version for verikloak-pundit.
     #
     # @return [String]
-    VERSION = '0.2.2'
+    VERSION = '0.2.3'
   end
 end
