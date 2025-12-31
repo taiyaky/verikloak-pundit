@@ -5,7 +5,7 @@ source 'https://rubygems.org'
 # Pull the latest compatible releases of the core Verikloak gems
 # and resolve them together with the local verikloak-pundit checkout.
 
-gem 'verikloak', '~> 0.1'
-gem 'verikloak-rails', '~> 0.1'
+gem 'verikloak', '~> 0.3.0'
+gem 'verikloak-rails', '~> 0.2.9'
 
 gem 'verikloak-pundit', path: '..'

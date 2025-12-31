@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clarified controller setup examples to use `Verikloak::Pundit::Controller` (this gem) instead of `Verikloak::Rails::Controller` (verikloak-rails gem).
 - Added explicit notes about method origins (`verikloak_claims` vs `current_user_claims`) for users combining multiple Verikloak gems.
 - Enhanced nil user handling documentation with `safe_has_role?` helper pattern for public endpoints.
+- Bump minimum `verikloak` dependency from `>= 0.2.0` to `>= 0.3.0` to align with latest upstream releases.
+- Update Ruby version to 3.4.8 in development environment.
 
 ## [0.2.2] - 2025-09-28
 
