@@ -14,9 +14,10 @@ module Verikloak
       end
 
       # Pundit hook returning the UserContext built from Rack env claims.
+      # Memoized to avoid creating multiple instances per request.
       # @return [UserContext]
       def pundit_user
-        Verikloak::Pundit::UserContext.from_env(request.env)
+        @pundit_user ||= Verikloak::Pundit::UserContext.from_env(request.env)
       end
 
       # Access raw Verikloak claims from Rack env.

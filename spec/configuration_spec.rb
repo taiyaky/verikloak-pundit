@@ -92,4 +92,33 @@ RSpec.describe Verikloak::Pundit::Configuration do
     expect(Verikloak::Pundit.config.resource_client).to eq("rails-api")
     expect(Verikloak::Pundit.config.role_map).to eq({})
   end
+
+  it "preserves ENV fallback behavior when duplicating config with nil resource_client" do
+    original = described_class.new
+    # resource_client is nil by default, falls back to ENV
+    expect(original.instance_variable_get(:@resource_client)).to be_nil
+
+    duplicated = original.dup
+    # Duplicated should also have nil, not the resolved value
+    expect(duplicated.instance_variable_get(:@resource_client)).to be_nil
+    # But getter should still return the fallback
+    expect(duplicated.resource_client).to eq("rails-api")
+  end
+
+  it "normalizes role_map keys to symbols" do
+    cfg = described_class.new
+    cfg.role_map = { 'admin' => :manage_all, 'reader' => :read_only }
+
+    expect(cfg.role_map.keys).to all(be_a(Symbol))
+    expect(cfg.role_map[:admin]).to eq(:manage_all)
+    expect(cfg.role_map[:reader]).to eq(:read_only)
+  end
+
+  it "handles mixed string and symbol keys in role_map" do
+    cfg = described_class.new
+    cfg.role_map = { 'admin' => :manage_all, editor: :edit }
+
+    expect(cfg.role_map[:admin]).to eq(:manage_all)
+    expect(cfg.role_map[:editor]).to eq(:edit)
+  end
 end

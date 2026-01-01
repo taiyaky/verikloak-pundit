@@ -43,7 +43,7 @@ module Verikloak
       def realm_roles
         @realm_roles ||= begin
           path = resolve_path(config.realm_roles_path)
-          Array(claims.dig(*path)).map(&:to_s).uniq.freeze
+          extract_roles(path)
         end
       end
 
@@ -55,7 +55,7 @@ module Verikloak
         client = client.to_s
         (@resource_roles_cache ||= {})[client] ||= begin
           path = resolve_path(config.resource_roles_path, client: client)
-          Array(claims.dig(*path)).map(&:to_s).uniq.freeze
+          extract_roles(path)
         end
       end
 
@@ -107,6 +107,14 @@ module Verikloak
 
       private
 
+      # Extract roles from claims at the given path.
+      #
+      # @param path [Array<String>]
+      # @return [Array<String>]
+      def extract_roles(path)
+        Array(claims.dig(*path)).map(&:to_s).uniq.freeze
+      end
+
       # Resolve a configured path into concrete dig segments.
       #
       # @param path_config [Array<String, Proc>]
@@ -146,6 +154,7 @@ module Verikloak
           access = claims[CLAIM_RESOURCE_ACCESS]
           if access.is_a?(Hash)
             roles = access.each_with_object([]) do |(client_id, entry), acc|
+              next unless entry.is_a?(Hash)
               next unless permission_client_allowed?(client_id)
 
               acc.concat(Array(entry[CLAIM_ROLES]))

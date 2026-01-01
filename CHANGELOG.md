@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] - 2026-01-01
+
+### Fixed
+- **ENV fallback preservation**: `Configuration#dup` now correctly preserves the `nil` state of `resource_client`, allowing ENV fallback to remain dynamic after duplication. Previously, duplicating a config would freeze the resolved ENV value.
+- **Non-hash resource_access entries**: `resource_roles_all_clients` now guards against malformed `resource_access` entries that are not hashes, preventing potential `NoMethodError`.
+
+### Changed
+- **role_map key normalization**: `role_map` keys are now automatically normalized to symbols when set. This allows users to configure with string keys (e.g., from YAML) while maintaining consistent symbol-based lookup in `RoleMapper`.
+- **pundit_user memoization**: `Controller#pundit_user` is now memoized with `@pundit_user ||=` to avoid creating multiple `UserContext` instances per request.
+
+---
+
 ## [0.2.4] - 2026-01-01
 
 ### Added

@@ -16,7 +16,7 @@ module Verikloak
       # Synchronize configuration with verikloak-rails when available.
       # Runs after verikloak-rails configuration is applied.
       initializer 'verikloak_pundit.sync_configuration', after: 'verikloak.configure' do
-        sync_with_verikloak_rails if defined?(Verikloak::Rails)
+        Verikloak::Pundit::Railtie.sync_with_verikloak_rails if defined?(Verikloak::Rails)
       end
 
       class << self
