@@ -22,10 +22,19 @@ module Verikloak
     # @!attribute expose_helper_method
     #   @return [Boolean] whether to register `verikloak_claims` as a Rails helper method
     class Configuration
-      attr_accessor :resource_client, :role_map, :env_claims_key,
+      attr_accessor :role_map, :env_claims_key,
                     :realm_roles_path, :resource_roles_path,
                     :permission_role_scope, :permission_resource_clients,
                     :expose_helper_method
+
+      attr_writer :resource_client
+
+      # Returns the resource client, falling back to ENV['KEYCLOAK_RESOURCE_CLIENT'] if not set.
+      #
+      # @return [String]
+      def resource_client
+        @resource_client || ENV.fetch('KEYCLOAK_RESOURCE_CLIENT', 'rails-api')
+      end
 
       # Build a new configuration, optionally copying values from another
       # configuration so callers can mutate a safe duplicate.
@@ -77,7 +86,7 @@ module Verikloak
 
       # Populate default values that mirror the gem's out-of-the-box behavior.
       def initialize_defaults
-        @resource_client   = 'rails-api'
+        @resource_client   = nil # Falls back to ENV['KEYCLOAK_RESOURCE_CLIENT'] or 'rails-api'
         @role_map          = {} # e.g., { admin: :manage_all }
         @env_claims_key    = 'verikloak.user'
         @realm_roles_path  = %w[realm_access roles]
