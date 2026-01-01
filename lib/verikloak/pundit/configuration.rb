@@ -22,12 +22,21 @@ module Verikloak
     # @!attribute expose_helper_method
     #   @return [Boolean] whether to register `verikloak_claims` as a Rails helper method
     class Configuration
-      attr_accessor :role_map, :env_claims_key,
+      attr_accessor :env_claims_key,
                     :realm_roles_path, :resource_roles_path,
                     :permission_role_scope, :permission_resource_clients,
                     :expose_helper_method
 
+      attr_reader :role_map
       attr_writer :resource_client
+
+      # Set the role map, normalizing keys to symbols for consistent lookup.
+      #
+      # @param value [Hash]
+      # @return [void]
+      def role_map=(value)
+        @role_map = normalize_role_map(value)
+      end
 
       # Returns the resource client, falling back to ENV['KEYCLOAK_RESOURCE_CLIENT'] if not set.
       #
@@ -99,12 +108,23 @@ module Verikloak
         @expose_helper_method = true
       end
 
+      # Normalize role_map keys to symbols for consistent lookup.
+      #
+      # @param map [Hash, nil]
+      # @return [Hash]
+      def normalize_role_map(map)
+        return {} unless map.is_a?(Hash)
+
+        map.transform_keys(&:to_sym)
+      end
+
       # Copy configuration fields from another instance, duplicating mutable
       # structures so future writes do not leak across instances.
       #
       # @param other [Configuration]
       def initialize_from(other)
-        @resource_client = dup_string(other.resource_client)
+        # Copy the raw instance variable, not the getter, to preserve ENV fallback behavior
+        @resource_client = dup_string(other.instance_variable_get(:@resource_client))
         @role_map = dup_hash(other.role_map)
         @env_claims_key = dup_string(other.env_claims_key)
         @realm_roles_path = dup_array(other.realm_roles_path)

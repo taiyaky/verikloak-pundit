@@ -188,4 +188,33 @@ RSpec.describe Verikloak::Pundit::UserContext do
     # context holds a snapshot of the original configuration.
     expect(ctx.has_permission?(:manage_all)).to be true
   end
+
+  it "handles non-hash entries in resource_access gracefully" do
+    Verikloak::Pundit.configure do |c|
+      c.permission_role_scope = :all_resources
+    end
+
+    malformed_claims = {
+      "sub" => "abc",
+      "resource_access" => {
+        "valid-client" => { "roles" => ["editor"] },
+        "malformed-client" => "not a hash",
+        "null-client" => nil
+      }
+    }
+
+    ctx = described_class.new(malformed_claims)
+    # Should extract roles from valid entry only
+    roles = ctx.send(:resource_roles_all_clients)
+    expect(roles).to eq(["editor"])
+  end
+
+  it "maps permissions with string keys in role_map" do
+    Verikloak::Pundit.configure do |c|
+      c.role_map = { 'admin' => :manage_all }
+    end
+
+    ctx = described_class.new(claims)
+    expect(ctx.has_permission?(:manage_all)).to be true
+  end
 end
