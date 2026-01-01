@@ -6,7 +6,7 @@ RSpec.describe 'Verikloak::Pundit::Railtie integration' do
     # Stub Rails::Railtie.initializer to execute immediately
     module Rails; end
     class Rails::Railtie
-      def self.initializer(_name, &block)
+      def self.initializer(_name, **_options, &block)
         block.call
       end
     end

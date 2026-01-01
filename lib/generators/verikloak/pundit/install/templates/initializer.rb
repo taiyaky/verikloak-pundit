@@ -1,24 +1,28 @@
 # frozen_string_literal: true
 
 # Verikloak::Pundit initializer
-# Configure how to read roles from Keycloak claims and how to map them
-# into application permissions.
+#
+# Most settings are auto-configured from environment variables and verikloak-rails.
+# Uncomment and customize only what you need to override.
+#
+# Environment variables supported:
+#   KEYCLOAK_RESOURCE_CLIENT - resource client ID (default: 'rails-api')
+#
+# When used with verikloak-rails, env_claims_key is automatically synchronized.
 Verikloak::Pundit.configure do |c|
-  c.resource_client = ENV.fetch('KEYCLOAK_RESOURCE_CLIENT', 'rails-api')
-  c.role_map = {
-    # admin:  :manage_all,
-    # editor: :write_notes,
-    # reader: :read_notes
-  }
-  c.env_claims_key = 'verikloak.user'
-  # claims['realm_access']['roles']
-  c.realm_roles_path    = %w[realm_access roles]
-  # rubocop:disable Style/SymbolProc -- we need a Proc object here, not block pass
-  # claims['resource_access'][resource_client]['roles']
-  c.resource_roles_path = ['resource_access', ->(cfg) { cfg.resource_client }, 'roles']
-  # rubocop:enable Style/SymbolProc
-  # Permission mapping scope:
-  #   :default_resource => realm roles + default client roles (recommended)
-  #   :all_resources    => realm roles + roles from all clients in resource_access
-  c.permission_role_scope = :default_resource
+  # Resource client (optional - falls back to ENV['KEYCLOAK_RESOURCE_CLIENT'] or 'rails-api')
+  # c.resource_client = ENV.fetch('KEYCLOAK_RESOURCE_CLIENT', 'rails-api')
+
+  # Role to permission mapping (optional)
+  # c.role_map = {
+  #   admin:  :manage_all,
+  #   editor: :write_notes,
+  #   reader: :read_notes
+  # }
+
+  # Uncomment to customize JWT claims path and scope (usually not needed):
+  # c.env_claims_key = 'verikloak.user'
+  # c.realm_roles_path = %w[realm_access roles]
+  # c.resource_roles_path = ['resource_access', ->(cfg) { cfg.resource_client }, 'roles']
+  # c.permission_role_scope = :default_resource  # or :all_resources
 end
