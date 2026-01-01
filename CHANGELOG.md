@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.4] - 2026-01-01
+
+### Added
+- **Environment variable fallback**: `resource_client` now falls back to `ENV['KEYCLOAK_RESOURCE_CLIENT']` when not explicitly configured, enabling environment-based configuration.
+- **Auto-sync with verikloak-rails**: When used alongside `verikloak-rails`, `env_claims_key` is automatically synchronized from `Verikloak::Rails.config.user_env_key` if not explicitly set.
+
+### Changed
+- **Simplified initializer template**: Generator now produces a minimal initializer with commented examples instead of explicit defaults. Most settings work out of the box.
+- **README improvements**: Updated Configuration section with environment variables table, auto-configuration documentation, and removed redundant examples.
+- **Consistent Pundit include**: Quick Start examples now use `Pundit::Authorization` consistently.
+
 ## [0.2.3] - 2025-12-31
 
 ### Added
