@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] - 2026-02-15
+
+### Changed
+- **BREAKING**: Minimum `verikloak` dependency raised to `>= 0.4.0, < 1.0.0`
+- Dev dependency `rspec` pinned to `~> 3.13`, `rubocop-rspec` pinned to `~> 3.9`
+
+### Fixed
+- **ClaimUtils.normalize observability**: `rescue StandardError` now captures the exception and emits a `warn` when `$DEBUG` is enabled, improving debuggability of malformed claims
+
+---
+
 ## [0.3.0] - 2026-01-01
 
 ### Fixed
