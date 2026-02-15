@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.0] - 2026-02-15
+
+### Fixed
+- **Thread-safety**: `config_mutex` is now eagerly initialized at load time. The previous `||= Mutex.new` pattern was racy — two threads could create separate Mutex instances, defeating mutual exclusion
+
+### Removed
+- **BREAKING**: `Verikloak::Pundit::Policy` and `Verikloak::Pundit::Helpers` deprecated modules have been removed as announced in their deprecation notices. Use `Verikloak::Pundit::Delegations` directly instead
+
+### Changed
+- **BREAKING**: Minimum `verikloak` dependency raised to `~> 1.0`
+- **v1.0.0 stable release**: Public API is now considered stable under Semantic Versioning
+
+---
+
 ## [0.4.0] - 2026-02-15
 
 ### Changed

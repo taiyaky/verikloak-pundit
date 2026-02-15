@@ -7,14 +7,17 @@ require_relative 'pundit/role_mapper'
 require_relative 'pundit/delegations'
 require_relative 'pundit/claim_utils'
 require_relative 'pundit/user_context'
-require_relative 'pundit/helpers'
 require_relative 'pundit/controller'
-require_relative 'pundit/policy'
 require_relative 'pundit/railtie' if defined?(Rails::Railtie)
 
 module Verikloak
   # Pundit integration namespace
   module Pundit
+    # Eagerly-initialized mutex to protect configuration reads/writes.
+    # Using ||= Mutex.new inside a method is NOT thread-safe — two threads
+    # can race past the nil-check and create separate Mutex instances.
+    @config_mutex = Mutex.new
+
     class << self
       # Configure the library at runtime.
       #
@@ -52,11 +55,10 @@ module Verikloak
       private
 
       # Mutex protecting configuration reads/writes to maintain thread safety.
+      # Eagerly initialized at load time (see module body above).
       #
       # @return [Mutex]
-      def config_mutex
-        @config_mutex ||= Mutex.new
-      end
+      attr_reader :config_mutex
     end
   end
 end
