@@ -96,7 +96,7 @@ end
   token presented to verikloak-pundit typically originates from the BFF
   (e.g. via the `x-verikloak-user` header). Make sure your Rack stack stores the
   decoded claims under the same `env_claims_key` (default: `"verikloak.user"`,
-  which works out of the box with `verikloak-bff >= 0.3`). If the BFF issues
+  which works out of the box with `verikloak-bff >= 0.4.0`). If the BFF issues
   tokens for multiple downstream services, set `permission_resource_clients` to
   the limited list of clients whose roles should affect Rails-side authorization
   to avoid accidentally inheriting permissions meant for other services.

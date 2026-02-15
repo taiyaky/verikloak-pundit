@@ -20,7 +20,8 @@ module Verikloak
         end
 
         {}
-      rescue StandardError
+      rescue StandardError => e
+        warn "[Verikloak::Pundit] ClaimUtils.normalize failed: #{e.class}: #{e.message}" if $DEBUG
         {}
       end
     end
