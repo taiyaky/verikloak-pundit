@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ERRORS.md no longer claims configuration is not thread-safe (stale since the v1.0.0 thread-safety fix)
 
 ### Internal
+- CI: added a Ruby compatibility matrix (3.1 / 3.2 / 3.3, mirroring the verikloak repo) that runs the suite against `gemfiles/compat.gemfile` with a fresh per-Ruby resolution; the docker-based job continues to cover the development Ruby (3.4)
 - Refactoring: unified deep-copy helpers in `Configuration` (removed the `dup_hash`/`dup_string`/`dup_array` wrappers and the redundant `dup` override), simplified `RoleMapper.map` and `UserContext#normalize_to_symbol`
 - Test coverage: added specs for `Delegations`, `ClaimUtils`, `Railtie.sync_with_verikloak_rails`, `UserContext.from_env`, the `KEYCLOAK_RESOURCE_CLIENT` ENV fallback, and strict permission mode. Spec files are now linted by RuboCop, and Rails-stubbing specs share a scoped `stub_require` helper instead of mutating `$LOADED_FEATURES`
 

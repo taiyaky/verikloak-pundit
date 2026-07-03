@@ -34,3 +34,6 @@ Thumbs.db
 
 # Ignore external comparison clones
 external/
+
+# Ignore compatibility-matrix lockfiles (resolved fresh per Ruby in CI)
+gemfiles/*.lock
