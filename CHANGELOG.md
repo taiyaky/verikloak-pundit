@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Per-client `resource_role?` with the default configuration**: the default `resource_roles_path` lambda ignored the requested client, so `resource_role?(client, role)` always inspected the default resource client's roles — granting or denying based on the wrong client. The default path lambda now receives `(config, client)` and resolves the explicitly requested client
-- **Path lambdas with optional or variadic parameters**: custom `resource_roles_path` lambdas such as `->(cfg, client = nil) { ... }` (negative arity) never received the requested client and silently fell back to the default resource client. Only single-argument procs are now called with `(config)` alone; every other signature receives `(config, client)`
+- **Path lambdas with optional or variadic parameters**: custom `resource_roles_path` lambdas such as `->(cfg, client = nil) { ... }` (negative arity) never received the requested client and silently fell back to the default resource client. Zero-argument procs are now called as thunks, single-argument procs receive `(config)`, and every other signature receives `(config, client)`
 - ERRORS.md no longer claims configuration is not thread-safe (stale since the v1.0.0 thread-safety fix)
 
 ### Internal

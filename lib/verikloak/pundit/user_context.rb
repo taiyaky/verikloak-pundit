@@ -124,14 +124,15 @@ module Verikloak
         Array(path_config).map do |seg|
           case seg
           when Proc
-            # Only single-argument procs receive (config) alone. Every other
-            # signature — including optional/variadic ones such as
-            # ->(cfg, client = nil) (arity -2) — receives (config, client),
-            # so an explicitly requested client is never silently dropped.
-            if seg.arity == 1
-              seg.call(config).to_s
-            else
-              seg.call(config, client).to_s
+            # Zero-argument procs are called as thunks and single-argument
+            # procs receive (config). Every other signature — including
+            # optional/variadic ones such as ->(cfg, client = nil)
+            # (arity -2) — receives (config, client), so an explicitly
+            # requested client is never silently dropped.
+            case seg.arity
+            when 0 then seg.call.to_s
+            when 1 then seg.call(config).to_s
+            else seg.call(config, client).to_s
             end
           else
             seg.to_s

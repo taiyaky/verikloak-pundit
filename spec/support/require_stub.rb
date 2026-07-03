@@ -11,7 +11,11 @@ module RequireStub
     original = Kernel.instance_method(:require)
     # rubocop:disable RSpec/AnyInstance -- require must be intercepted on every receiver
     allow_any_instance_of(Object).to receive(:require) do |instance, path|
-      features.include?(path) || original.bind(instance).call(path)
+      if features.include?(path)
+        false # Kernel#require returns false for an already-loaded feature
+      else
+        original.bind(instance).call(path)
+      end
     end
     # rubocop:enable RSpec/AnyInstance
   end

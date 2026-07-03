@@ -94,6 +94,23 @@ RSpec.describe Verikloak::Pundit::Configuration do
     expect(Verikloak::Pundit.config.role_map).to eq({})
   end
 
+  it 'supports Configuration.new(other) as a copy constructor (v1.0.0 signature)' do
+    Verikloak::Pundit.configure do |c|
+      c.role_map = { admin: :manage_all }
+      c.env_claims_key = 'custom.key'
+    end
+
+    copy = described_class.new(Verikloak::Pundit.config)
+
+    expect(copy).not_to be_frozen
+    expect(copy.role_map).to eq(admin: :manage_all)
+    expect(copy.env_claims_key).to eq('custom.key')
+
+    # Mutating the copy must not leak back into the (frozen) source
+    copy.env_claims_key << '.more'
+    expect(Verikloak::Pundit.config.env_claims_key).to eq('custom.key')
+  end
+
   it 'preserves ENV fallback behavior when duplicating config with nil resource_client' do
     original = described_class.new
     # resource_client is nil by default, falls back to ENV

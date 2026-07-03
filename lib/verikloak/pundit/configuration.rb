@@ -56,8 +56,14 @@ module Verikloak
         @resource_client || ENV.fetch('KEYCLOAK_RESOURCE_CLIENT', 'rails-api')
       end
 
-      # Build a new configuration populated with default values.
-      def initialize
+      # Build a new configuration populated with default values, optionally
+      # copying values from another configuration so callers can mutate a
+      # safe duplicate. The `copy_from` parameter is kept for backward
+      # compatibility with the v1.0.0 signature; `dup` is the idiomatic way
+      # to copy.
+      #
+      # @param copy_from [Configuration, nil]
+      def initialize(copy_from = nil)
         @resource_client   = nil # Falls back to ENV['KEYCLOAK_RESOURCE_CLIENT'] or 'rails-api'
         @role_map          = {} # e.g., { admin: :manage_all }
         @env_claims_key    = 'verikloak.user'
@@ -71,6 +77,7 @@ module Verikloak
         @permission_resource_clients = nil
         @strict_permissions = false
         @expose_helper_method = true
+        copy_state_from(copy_from) if copy_from
       end
 
       # Duplicate the configuration via Ruby's `dup`/`clone`, ensuring the new
@@ -79,16 +86,7 @@ module Verikloak
       # @param other [Configuration]
       def initialize_copy(other)
         super
-        # Copy the raw instance variable, not the getter, to preserve ENV fallback behavior
-        @resource_client = deep_dup(other.instance_variable_get(:@resource_client))
-        @role_map = deep_dup(other.role_map)
-        @env_claims_key = deep_dup(other.env_claims_key)
-        @realm_roles_path = deep_dup(other.realm_roles_path)
-        @resource_roles_path = deep_dup(other.resource_roles_path)
-        @permission_role_scope = other.permission_role_scope
-        @permission_resource_clients = deep_dup(other.permission_resource_clients)
-        @strict_permissions = other.strict_permissions
-        @expose_helper_method = other.expose_helper_method
+        copy_state_from(other)
       end
 
       # Freeze the configuration and its nested structures to prevent runtime
@@ -110,6 +108,25 @@ module Verikloak
       end
 
       private
+
+      # Copy all configuration state from another instance, deep-duplicating
+      # nested structures (and reading the raw @resource_client rather than
+      # the getter, to preserve its ENV fallback behavior) so the copy can be
+      # mutated without affecting the source.
+      #
+      # @param other [Configuration]
+      # @return [void]
+      def copy_state_from(other)
+        @resource_client = deep_dup(other.instance_variable_get(:@resource_client))
+        @role_map = deep_dup(other.role_map)
+        @env_claims_key = deep_dup(other.env_claims_key)
+        @realm_roles_path = deep_dup(other.realm_roles_path)
+        @resource_roles_path = deep_dup(other.resource_roles_path)
+        @permission_role_scope = other.permission_role_scope
+        @permission_resource_clients = deep_dup(other.permission_resource_clients)
+        @strict_permissions = other.strict_permissions
+        @expose_helper_method = other.expose_helper_method
+      end
 
       # Normalize role_map keys to symbols and validate value types.
       #

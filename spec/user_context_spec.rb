@@ -88,6 +88,15 @@ RSpec.describe Verikloak::Pundit::UserContext do
     expect(ctx.resource_role?(:'other-api', :editor)).to be false
   end
 
+  it 'calls zero-argument path procs as thunks' do
+    Verikloak::Pundit.configure do |c|
+      c.resource_roles_path = [-> { 'resource_access' }, 'rails-api', 'roles']
+    end
+
+    ctx = described_class.new(claims)
+    expect(ctx.resource_role?(:'rails-api', :editor)).to be true
+  end
+
   it 'maps permissions from realm and resource roles' do
     Verikloak::Pundit.configure do |c|
       c.role_map = {
