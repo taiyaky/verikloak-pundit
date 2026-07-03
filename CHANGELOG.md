@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`strict_permissions` configuration**: when enabled, `has_permission?` only grants permissions defined as `role_map` values; unmapped role names no longer act as implicit permissions. Recommended together with `permission_role_scope = :all_resources`
 
 ### Changed
+- Minimum `verikloak` dependency raised to `~> 1.1`, aligned with the verikloak 1.1.0 release (compatibility with verikloak-rails 1.2.0 verified: default user env key and the `verikloak.configure` initializer ordering are unchanged)
 - **Helper exposure is evaluated at call time**: `verikloak_claims` is exposed to views through a helper module that consults `expose_helper_method` on each call, so the setting takes effect regardless of initializer ordering. When disabled, views receive `nil` instead of raising `NoMethodError`
 - **Reentrant configuration lock**: the internal config `Mutex` was replaced with a `Monitor`, so reading `Verikloak::Pundit.config` inside a `configure` block no longer raises `ThreadError`
 - `role_map` values are validated at assignment: Symbols, Strings, and `nil` are accepted; anything else raises `ArgumentError` so misconfiguration surfaces at boot (v1.0.0 silently coerced such values via `to_s`)
@@ -23,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RoleMapper.map`: use `RoleMapper.permission_for` instead. `map` now delegates to it, so strict mode and explicit `nil` revocations are honored consistently by every caller
 
 ### Security
-- Updated locked development/CI dependencies to resolve all known advisories (25 Dependabot alerts): rack 3.2.6, activesupport 8.1.3, concurrent-ruby 1.3.7, faraday 2.14.3, jwt 3.2.0, json 2.20.0. Runtime dependency constraints are unchanged
+- Updated locked development/CI dependencies to resolve all known advisories (25 Dependabot alerts): rack 3.2.6, activesupport 8.1.3, concurrent-ruby 1.3.7, faraday 2.14.3, jwt 3.2.0, json 2.20.0. The `pundit ~> 2.3` runtime constraint is unchanged (the `verikloak` constraint bump is listed under Changed)
 
 ### Removed
 - **Unused `rack` runtime dependency**: the gem only reads the Rack env Hash and uses no Rack APIs (`rack-test` was likewise removed from development dependencies)

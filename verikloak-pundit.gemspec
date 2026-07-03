@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
   # NOTE: rack is intentionally NOT declared — this gem only reads the Rack
   # env Hash provided by verikloak's middleware and uses no Rack APIs.
   spec.add_dependency 'pundit', '~> 2.3'
-  spec.add_dependency 'verikloak', '~> 1.0'
+  spec.add_dependency 'verikloak', '~> 1.1'
 
   # Metadata for RubyGems
   spec.metadata['source_code_uri'] = spec.homepage
