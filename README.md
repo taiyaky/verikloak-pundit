@@ -113,8 +113,18 @@ With strict mode on, roles without a `role_map` entry contribute no
 permissions. This is recommended when combining
 `permission_role_scope = :all_resources` with tokens shared across services,
 so role names minted for other clients cannot accidentally satisfy
-permission checks. Note that `role_map` values must be Symbols or Strings;
-other value types are ignored during permission mapping.
+permission checks.
+
+`role_map` values must be Symbols, Strings, or `nil` — any other type raises
+an `ArgumentError` when assigned. Mapping a role to `nil` explicitly revokes
+its implicit permission even when strict mode is off:
+
+```ruby
+Verikloak::Pundit.configure do |c|
+  # `legacy_role` in a token no longer satisfies has_permission?(:legacy_role)
+  c.role_map = { legacy_role: nil }
+end
+```
 
 ### Working with other Verikloak gems
 

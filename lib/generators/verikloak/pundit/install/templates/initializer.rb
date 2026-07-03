@@ -13,7 +13,9 @@ Verikloak::Pundit.configure do |c|
   # Resource client (optional - falls back to ENV['KEYCLOAK_RESOURCE_CLIENT'] or 'rails-api')
   # c.resource_client = ENV.fetch('KEYCLOAK_RESOURCE_CLIENT', 'rails-api')
 
-  # Role to permission mapping (optional)
+  # Role to permission mapping (optional).
+  # Values must be Symbols or Strings; map a role to nil to explicitly
+  # revoke its implicit permission.
   # c.role_map = {
   #   admin:  :manage_all,
   #   editor: :write_notes,

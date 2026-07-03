@@ -7,7 +7,9 @@ module Verikloak
     # @!attribute resource_client
     #   @return [String] default Keycloak resource client used for resource roles
     # @!attribute role_map
-    #   @return [Hash{Symbol=>Symbol,String}] mapping from roles to permissions
+    #   @return [Hash{Symbol=>Symbol,String,nil}] mapping from roles to
+    #     permissions; a nil value explicitly revokes the role's implicit
+    #     permission
     # @!attribute env_claims_key
     #   @return [String] Rack env key where claims are stored (when using verikloak/verikloak-rails)
     # @!attribute realm_roles_path
@@ -35,9 +37,14 @@ module Verikloak
       attr_writer :resource_client
 
       # Set the role map, normalizing keys to symbols for consistent lookup.
+      # Values must be Symbols, Strings, or nil (an explicit nil revokes the
+      # role's implicit permission); anything else raises at assignment time
+      # so misconfiguration surfaces at boot instead of as silently missing
+      # permissions.
       #
       # @param value [Hash]
       # @return [void]
+      # @raise [ArgumentError] when a value is neither Symbol, String, nor nil
       def role_map=(value)
         @role_map = normalize_role_map(value)
       end
@@ -104,13 +111,21 @@ module Verikloak
 
       private
 
-      # Normalize role_map keys to symbols for consistent lookup.
+      # Normalize role_map keys to symbols and validate value types.
       #
       # @param map [Hash, nil]
       # @return [Hash]
+      # @raise [ArgumentError] when a value is neither Symbol, String, nor nil
       def normalize_role_map(map)
         return {} unless map.is_a?(Hash)
 
+        map.each do |key, value|
+          next if value.nil? || value.is_a?(Symbol) || value.is_a?(String)
+
+          raise ArgumentError,
+                "role_map value for #{key.inspect} must be a Symbol, a String, " \
+                "or nil (explicit revocation); got #{value.class}"
+        end
         map.transform_keys(&:to_sym)
       end
 

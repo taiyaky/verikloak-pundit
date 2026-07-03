@@ -63,6 +63,31 @@ RSpec.describe Verikloak::Pundit::UserContext do
     expect(ctx.resource_role?(:another, :writer)).to be true
   end
 
+  it 'passes the requested client to path lambdas with optional parameters' do
+    Verikloak::Pundit.configure do |c|
+      c.resource_client = 'rails-api'
+      c.resource_roles_path = [
+        'resource_access',
+        ->(cfg, client = nil) { client || cfg.resource_client },
+        'roles'
+      ]
+    end
+
+    multi_client_claims = {
+      'resource_access' => {
+        'rails-api' => { 'roles' => ['editor'] },
+        'other-api' => { 'roles' => ['viewer'] }
+      }
+    }
+    ctx = described_class.new(multi_client_claims)
+
+    # Regression: the old `arity >= 2` dispatch skipped the client for
+    # optional-parameter lambdas (arity -2), silently checking the default
+    # client's roles instead of the requested one.
+    expect(ctx.resource_role?(:'other-api', :viewer)).to be true
+    expect(ctx.resource_role?(:'other-api', :editor)).to be false
+  end
+
   it 'maps permissions from realm and resource roles' do
     Verikloak::Pundit.configure do |c|
       c.role_map = {
@@ -253,15 +278,16 @@ RSpec.describe Verikloak::Pundit::UserContext do
       expect(ctx.has_permission?(:editor)).to be false      # unmapped resource role
     end
 
-    it 'ignores role_map values that are not Symbol or String' do
+    it 'revokes implicit permissions for roles explicitly mapped to nil' do
       Verikloak::Pundit.configure do |c|
-        c.role_map = { admin: [:manage_all] }
+        c.role_map = { reader: nil }
       end
 
       ctx = described_class.new(claims)
-      expect(ctx.has_permission?(:manage_all)).to be false
-      # The unmapped roles still fall through in non-strict mode
-      expect(ctx.has_permission?(:reader)).to be true
+      expect(ctx.has_permission?(:reader)).to be false
+      # Other unmapped roles still fall through in non-strict mode
+      expect(ctx.has_permission?(:admin)).to be true
+      expect(ctx.has_permission?(:editor)).to be true
     end
   end
 

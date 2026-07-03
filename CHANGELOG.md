@@ -15,8 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Helper exposure is evaluated at call time**: `verikloak_claims` is exposed to views through a helper module that consults `expose_helper_method` on each call, so the setting takes effect regardless of initializer ordering. When disabled, views receive `nil` instead of raising `NoMethodError`
 - **Reentrant configuration lock**: the internal config `Mutex` was replaced with a `Monitor`, so reading `Verikloak::Pundit.config` inside a `configure` block no longer raises `ThreadError`
-- `role_map` values must be Symbols or Strings; other value types are now ignored during permission mapping instead of being coerced via `to_s`
+- `role_map` values are validated at assignment: Symbols, Strings, and `nil` are accepted; anything else raises `ArgumentError` so misconfiguration surfaces at boot (v1.0.0 silently coerced such values via `to_s`)
+- An explicit `nil` value in `role_map` now revokes the role's implicit permission even when `strict_permissions` is off (previously a `nil` mapping was treated as unmapped and the bare role name fell through as a permission)
 - Boolean configuration flags (`strict_permissions`, `expose_helper_method`) are coerced to strict `true`/`false` on finalize
+
+### Deprecated
+- `RoleMapper.map`: use `RoleMapper.permission_for` instead. `map` now delegates to it, so strict mode and explicit `nil` revocations are honored consistently by every caller
 
 ### Security
 - Updated locked development/CI dependencies to resolve all known advisories (25 Dependabot alerts): rack 3.2.6, activesupport 8.1.3, concurrent-ruby 1.3.7, faraday 2.14.3, jwt 3.2.0, json 2.20.0. Runtime dependency constraints are unchanged
@@ -26,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Per-client `resource_role?` with the default configuration**: the default `resource_roles_path` lambda ignored the requested client, so `resource_role?(client, role)` always inspected the default resource client's roles — granting or denying based on the wrong client. The default path lambda now receives `(config, client)` and resolves the explicitly requested client
+- **Path lambdas with optional or variadic parameters**: custom `resource_roles_path` lambdas such as `->(cfg, client = nil) { ... }` (negative arity) never received the requested client and silently fell back to the default resource client. Only single-argument procs are now called with `(config)` alone; every other signature receives `(config, client)`
 - ERRORS.md no longer claims configuration is not thread-safe (stale since the v1.0.0 thread-safety fix)
 
 ### Internal

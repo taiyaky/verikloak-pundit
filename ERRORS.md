@@ -14,7 +14,8 @@ This document summarizes error handling expectations, fallback behaviors, and op
 | Configuration | Custom `Proc` objects are assigned to `resource_roles_path` or `realm_roles_path`. | Each segment is coerced with `to_s`; ensure the proc returns a string-compatible value to avoid unexpected dig paths. |
 | Configuration | An unknown value is assigned to `permission_role_scope`. | Falls back to the `:default_resource` behavior and continues without raising. |
 | Configuration | `strict_permissions = true` and a role has no `role_map` entry. | The role contributes no permission; `has_permission?` returns `false` for the bare role name. |
-| Configuration | A `role_map` value is neither a Symbol nor a String. | The value is ignored during permission mapping; no permission is granted for that role. |
+| Configuration | A `role_map` value is neither a Symbol, a String, nor `nil`. | `role_map=` raises `ArgumentError` at assignment time, so the misconfiguration surfaces at boot instead of as silently missing permissions. |
+| Configuration | A `role_map` value is explicitly `nil`. | The role's implicit permission is revoked: `has_permission?` returns `false` for that role name even when `strict_permissions` is off. |
 | JWT Claims | `claims` is `nil` or has an unexpected structure. | `UserContext` falls back to `{}`, so `realm_roles` and `resource_roles` return empty arrays. |
 | JWT Claims | `resource_access` is not a Hash or the requested client is missing. | `resource_roles` returns an empty array, causing `has_permission?` to evaluate to `false`. |
 | JWT Claims | The `email` claim is missing (and possibly `preferred_username`). | Uses `preferred_username` as a fallback; if that is also missing, returns `nil`. |

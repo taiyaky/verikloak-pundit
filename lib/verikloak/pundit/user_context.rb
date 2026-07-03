@@ -124,11 +124,14 @@ module Verikloak
         Array(path_config).map do |seg|
           case seg
           when Proc
-            # Support lambdas that accept (config) or (config, client)
-            if seg.arity >= 2
-              seg.call(config, client).to_s
-            else
+            # Only single-argument procs receive (config) alone. Every other
+            # signature — including optional/variadic ones such as
+            # ->(cfg, client = nil) (arity -2) — receives (config, client),
+            # so an explicitly requested client is never silently dropped.
+            if seg.arity == 1
               seg.call(config).to_s
+            else
+              seg.call(config, client).to_s
             end
           else
             seg.to_s
@@ -199,8 +202,8 @@ module Verikloak
       end
 
       # Normalize a value to a symbol. Only Symbols and non-empty Strings are
-      # convertible; any other type (including role_map values that are not
-      # Symbol/String) is ignored.
+      # convertible; nil (a strict-mode miss or an explicit role_map
+      # revocation) and any other type yield nil so no permission is granted.
       #
       # @param value [Object] The value to convert to a symbol
       # @return [Symbol, nil] The symbol representation, or nil if not convertible

@@ -60,18 +60,18 @@ RSpec.describe Verikloak::Pundit::Configuration do
 
   it 'does not share nested configuration structures across publishes' do
     Verikloak::Pundit.configure do |c|
-      c.role_map = { admin: [:manage_all] }
+      c.role_map = { admin: 'manage_all' }
       c.realm_roles_path = ['roles', ['nested']]
     end
 
     published = Verikloak::Pundit.config
 
     Verikloak::Pundit.configure do |c|
-      c.role_map[:admin] << :additional
+      c.role_map[:admin] << '_extended'
       c.realm_roles_path.last << 'another'
     end
 
-    expect(published.role_map[:admin]).to eq([:manage_all])
+    expect(published.role_map[:admin]).to eq('manage_all')
     expect(published.realm_roles_path).to eq(['roles', ['nested']])
   end
 
@@ -158,5 +158,20 @@ RSpec.describe Verikloak::Pundit::Configuration do
 
     expect(cfg.role_map[:admin]).to eq(:manage_all)
     expect(cfg.role_map[:editor]).to eq(:edit)
+  end
+
+  it 'rejects role_map values that are neither Symbol, String, nor nil' do
+    cfg = described_class.new
+    expect { cfg.role_map = { admin: [:manage_all] } }
+      .to raise_error(ArgumentError, /role_map value for :admin .* got Array/)
+    expect { cfg.role_map = { admin: false } }
+      .to raise_error(ArgumentError, /got FalseClass/)
+  end
+
+  it 'accepts nil role_map values as explicit revocations' do
+    cfg = described_class.new
+    cfg.role_map = { legacy: nil }
+
+    expect(cfg.role_map).to eq({ legacy: nil })
   end
 end
