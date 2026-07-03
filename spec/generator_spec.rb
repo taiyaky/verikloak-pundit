@@ -1,7 +1,8 @@
 # frozen_string_literal: true
-require "spec_helper"
-require "fileutils"
-require "tmpdir"
+
+require 'spec_helper'
+require 'fileutils'
+require 'tmpdir'
 
 RSpec.describe 'Verikloak::Pundit::Generators::InstallGenerator' do
   before do
@@ -30,6 +31,7 @@ RSpec.describe 'Verikloak::Pundit::Generators::InstallGenerator' do
       def template(src, dest)
         src_path = File.join(self.class.source_root, src)
         raise Thor::Error, "Could not find template #{src}" unless File.exist?(src_path)
+
         FileUtils.mkdir_p(File.dirname(dest))
         FileUtils.cp(src_path, dest)
       end
@@ -38,15 +40,7 @@ RSpec.describe 'Verikloak::Pundit::Generators::InstallGenerator' do
     stub_const('Rails', Module.new)
     stub_const('Rails::Generators', Module.new)
     stub_const('Rails::Generators::Base', base_class)
-
-    original_require = Kernel.instance_method(:require)
-    allow_any_instance_of(Object).to receive(:require) do |instance, path|
-      if path == 'rails/generators'
-        true
-      else
-        original_require.bind(instance).call(path)
-      end
-    end
+    stub_require('rails/generators')
 
     if defined?(Verikloak::Pundit::Generators::InstallGenerator)
       Verikloak::Pundit::Generators.send(:remove_const, :InstallGenerator)
@@ -55,7 +49,7 @@ RSpec.describe 'Verikloak::Pundit::Generators::InstallGenerator' do
     load File.expand_path('../lib/generators/verikloak/pundit/install/install_generator.rb', __dir__)
   end
 
-  it "creates initializer and application_policy by default" do
+  it 'creates initializer and application_policy by default' do
     Dir.mktmpdir do |dir|
       Dir.chdir(dir) do
         gen = Verikloak::Pundit::Generators::InstallGenerator.new
@@ -68,7 +62,7 @@ RSpec.describe 'Verikloak::Pundit::Generators::InstallGenerator' do
     end
   end
 
-  it "skips application_policy when option set" do
+  it 'skips application_policy when option set' do
     Dir.mktmpdir do |dir|
       Dir.chdir(dir) do
         gen = Verikloak::Pundit::Generators::InstallGenerator.new([], skip_policy: true)
@@ -81,7 +75,7 @@ RSpec.describe 'Verikloak::Pundit::Generators::InstallGenerator' do
     end
   end
 
-  it "does not overwrite existing application_policy" do
+  it 'does not overwrite existing application_policy' do
     Dir.mktmpdir do |dir|
       Dir.chdir(dir) do
         FileUtils.mkdir_p('app/policies')
@@ -95,7 +89,7 @@ RSpec.describe 'Verikloak::Pundit::Generators::InstallGenerator' do
     end
   end
 
-  it "creates files with expected content" do
+  it 'creates files with expected content' do
     Dir.mktmpdir do |dir|
       Dir.chdir(dir) do
         gen = Verikloak::Pundit::Generators::InstallGenerator.new

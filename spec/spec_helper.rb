@@ -16,7 +16,6 @@ if ENV['SIMPLECOV']
 end
 
 require 'rspec'
-require 'rack/test'
 
 # Load library path
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
@@ -28,8 +27,10 @@ rescue LoadError => e
   warn "[spec_helper] failed to load verikloak-pundit: #{e.message}"
 end
 
-# Load support helpers if present (optional)
-Dir[File.expand_path('support/**/*.rb', __dir__)].sort.each { |f| require f }
+# Load support helpers if present (optional). Dir[] results are sorted by
+# default since Ruby 3.0 (this gem requires >= 3.1), so load order is
+# deterministic without an explicit .sort (Lint/RedundantDirGlobSort).
+Dir[File.expand_path('support/**/*.rb', __dir__)].each { |f| require f }
 
 RSpec.configure do |config|
   config.expect_with :rspec do |c|

@@ -1,30 +1,31 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require 'spec_helper'
 
 RSpec.describe Verikloak::Pundit::Configuration do
   after do
     Verikloak::Pundit.reset!
   end
 
-  it "has sensible defaults" do
+  it 'has sensible defaults' do
     cfg = described_class.new
-    expect(cfg.resource_client).to eq("rails-api")
+    expect(cfg.resource_client).to eq('rails-api')
     expect(cfg.role_map).to eq({})
-    expect(cfg.env_claims_key).to eq("verikloak.user")
+    expect(cfg.env_claims_key).to eq('verikloak.user')
     expect(cfg.realm_roles_path).to eq(%w[realm_access roles])
     expect(cfg.resource_roles_path).to be_a(Array)
     expect(cfg.permission_role_scope).to eq(:default_resource)
     expect(cfg.permission_resource_clients).to be_nil
+    expect(cfg.strict_permissions).to be(false)
     expect(cfg.expose_helper_method).to be(true)
   end
 
-  it "is configurable via Verikloak::Pundit.configure" do
+  it 'is configurable via Verikloak::Pundit.configure' do
     result = Verikloak::Pundit.configure do |c|
-      c.resource_client = "api"
+      c.resource_client = 'api'
       c.role_map = { admin: :all }
       c.permission_role_scope = :all_resources
-      c.permission_resource_clients = [:api, "rails-api"]
+      c.permission_resource_clients = [:api, 'rails-api']
       c.expose_helper_method = false
     end
     expect(result).to be_a(described_class)
@@ -35,16 +36,16 @@ RSpec.describe Verikloak::Pundit::Configuration do
     expect(result.permission_resource_clients).to eq(%w[api rails-api])
     expect(result.permission_resource_clients).to be_frozen
     expect(result.expose_helper_method).to be(false)
-    expect(Verikloak::Pundit.config.resource_client).to eq("api")
+    expect(Verikloak::Pundit.config.resource_client).to eq('api')
     expect(Verikloak::Pundit.config.role_map).to eq({ admin: :all })
     expect(Verikloak::Pundit.config.permission_role_scope).to eq(:all_resources)
     expect(Verikloak::Pundit.config.permission_resource_clients).to eq(%w[api rails-api])
     expect(Verikloak::Pundit.config.expose_helper_method).to be(false)
   end
 
-  it "provides unfrozen copies when reconfiguring" do
+  it 'provides unfrozen copies when reconfiguring' do
     Verikloak::Pundit.configure do |c|
-      c.resource_client = "api"
+      c.resource_client = 'api'
       c.role_map = { admin: :all }
     end
 
@@ -57,43 +58,60 @@ RSpec.describe Verikloak::Pundit::Configuration do
     expect(Verikloak::Pundit.config.role_map).to eq({ admin: :all, reader: :read })
   end
 
-  it "does not share nested configuration structures across publishes" do
+  it 'does not share nested configuration structures across publishes' do
     Verikloak::Pundit.configure do |c|
-      c.role_map = { admin: [:manage_all] }
-      c.realm_roles_path = ["roles", ["nested"]]
+      c.role_map = { admin: 'manage_all' }
+      c.realm_roles_path = ['roles', ['nested']]
     end
 
     published = Verikloak::Pundit.config
 
     Verikloak::Pundit.configure do |c|
-      c.role_map[:admin] << :additional
-      c.realm_roles_path.last << "another"
+      c.role_map[:admin] << '_extended'
+      c.realm_roles_path.last << 'another'
     end
 
-    expect(published.role_map[:admin]).to eq([:manage_all])
-    expect(published.realm_roles_path).to eq(["roles", ["nested"]])
+    expect(published.role_map[:admin]).to eq('manage_all')
+    expect(published.realm_roles_path).to eq(['roles', ['nested']])
   end
 
-  it "stringifies and de-duplicates permission_resource_clients" do
+  it 'stringifies and de-duplicates permission_resource_clients' do
     cfg = described_class.new
-    cfg.permission_resource_clients = [:api, :api, "rails-api"]
+    cfg.permission_resource_clients = [:api, :api, 'rails-api']
     finalized = cfg.dup.finalize!
     expect(finalized.permission_resource_clients).to eq(%w[api rails-api])
   end
 
-  it "resets configuration to defaults" do
+  it 'resets configuration to defaults' do
     Verikloak::Pundit.configure do |c|
-      c.resource_client = "custom"
+      c.resource_client = 'custom'
       c.role_map = { admin: :all }
     end
 
     Verikloak::Pundit.reset!
 
-    expect(Verikloak::Pundit.config.resource_client).to eq("rails-api")
+    expect(Verikloak::Pundit.config.resource_client).to eq('rails-api')
     expect(Verikloak::Pundit.config.role_map).to eq({})
   end
 
-  it "preserves ENV fallback behavior when duplicating config with nil resource_client" do
+  it 'supports Configuration.new(other) as a copy constructor (v1.0.0 signature)' do
+    Verikloak::Pundit.configure do |c|
+      c.role_map = { admin: :manage_all }
+      c.env_claims_key = 'custom.key'
+    end
+
+    copy = described_class.new(Verikloak::Pundit.config)
+
+    expect(copy).not_to be_frozen
+    expect(copy.role_map).to eq(admin: :manage_all)
+    expect(copy.env_claims_key).to eq('custom.key')
+
+    # Mutating the copy must not leak back into the (frozen) source
+    copy.env_claims_key << '.more'
+    expect(Verikloak::Pundit.config.env_claims_key).to eq('custom.key')
+  end
+
+  it 'preserves ENV fallback behavior when duplicating config with nil resource_client' do
     original = described_class.new
     # resource_client is nil by default, falls back to ENV
     expect(original.instance_variable_get(:@resource_client)).to be_nil
@@ -102,10 +120,47 @@ RSpec.describe Verikloak::Pundit::Configuration do
     # Duplicated should also have nil, not the resolved value
     expect(duplicated.instance_variable_get(:@resource_client)).to be_nil
     # But getter should still return the fallback
-    expect(duplicated.resource_client).to eq("rails-api")
+    expect(duplicated.resource_client).to eq('rails-api')
   end
 
-  it "normalizes role_map keys to symbols" do
+  it 'coerces boolean flags to strict true/false on finalize' do
+    cfg = described_class.new
+    cfg.strict_permissions = 'yes'
+    cfg.expose_helper_method = nil
+    finalized = cfg.dup.finalize!
+
+    expect(finalized.strict_permissions).to be(true)
+    expect(finalized.expose_helper_method).to be(false)
+  end
+
+  it "prefers ENV['KEYCLOAK_RESOURCE_CLIENT'] when resource_client is unset" do
+    original = ENV.fetch('KEYCLOAK_RESOURCE_CLIENT', nil)
+    begin
+      ENV['KEYCLOAK_RESOURCE_CLIENT'] = 'env-client'
+
+      expect(described_class.new.resource_client).to eq('env-client')
+
+      explicit = described_class.new
+      explicit.resource_client = 'explicit-client'
+      expect(explicit.resource_client).to eq('explicit-client')
+    ensure
+      if original
+        ENV['KEYCLOAK_RESOURCE_CLIENT'] = original
+      else
+        ENV.delete('KEYCLOAK_RESOURCE_CLIENT')
+      end
+    end
+  end
+
+  it 'allows reading config from within a configure block (reentrant lock)' do
+    expect do
+      Verikloak::Pundit.configure do |c|
+        c.resource_client = Verikloak::Pundit.config.resource_client
+      end
+    end.not_to raise_error
+  end
+
+  it 'normalizes role_map keys to symbols' do
     cfg = described_class.new
     cfg.role_map = { 'admin' => :manage_all, 'reader' => :read_only }
 
@@ -114,11 +169,26 @@ RSpec.describe Verikloak::Pundit::Configuration do
     expect(cfg.role_map[:reader]).to eq(:read_only)
   end
 
-  it "handles mixed string and symbol keys in role_map" do
+  it 'handles mixed string and symbol keys in role_map' do
     cfg = described_class.new
     cfg.role_map = { 'admin' => :manage_all, editor: :edit }
 
     expect(cfg.role_map[:admin]).to eq(:manage_all)
     expect(cfg.role_map[:editor]).to eq(:edit)
+  end
+
+  it 'rejects role_map values that are neither Symbol, String, nor nil' do
+    cfg = described_class.new
+    expect { cfg.role_map = { admin: [:manage_all] } }
+      .to raise_error(ArgumentError, /role_map value for :admin .* got Array/)
+    expect { cfg.role_map = { admin: false } }
+      .to raise_error(ArgumentError, /got FalseClass/)
+  end
+
+  it 'accepts nil role_map values as explicit revocations' do
+    cfg = described_class.new
+    cfg.role_map = { legacy: nil }
+
+    expect(cfg.role_map).to eq({ legacy: nil })
   end
 end

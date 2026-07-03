@@ -6,9 +6,9 @@ AllCops:
   TargetRubyVersion: 3.1
   NewCops: enable
   Exclude:
-    - 'spec/**/*'
     - 'pkg/**/*'
     - 'external/**/*'
+    - 'vendor/**/*'
 
 
 Layout/LineLength:
@@ -21,6 +21,37 @@ Metrics/BlockLength:
 # RSpec-related rule sets
 RSpec:
   Enabled: true
+
+# Specs favor explicitness over strict example shape; keep opinionated
+# example-layout cops relaxed while still linting spec code.
+RSpec/ExampleLength:
+  Max: 30
+
+RSpec/MultipleExpectations:
+  Max: 15
+
+RSpec/DescribeClass:
+  Exclude:
+    - 'spec/railtie_spec.rb'
+    - 'spec/generator_spec.rb'
+    - 'spec/shim_spec.rb'
+
+# This gem uses a flat spec/ layout (spec/<file>_spec.rb), consistent with
+# the rest of the Verikloak series, rather than mirroring lib/ paths.
+RSpec/SpecFilePathFormat:
+  Enabled: false
+
+# railtie/generator specs `load` real library files that define constants;
+# they must remove those constants afterwards (stub_const cannot intercept
+# a load-time class definition).
+RSpec/RemoveConst:
+  Exclude:
+    - 'spec/railtie_spec.rb'
+    - 'spec/generator_spec.rb'
+
+Style/Documentation:
+  Exclude:
+    - 'spec/**/*'
 
 # Project-specific adjustments
 Naming/FileName:
@@ -38,10 +69,10 @@ Metrics/AbcSize:
   Max: 24                  # Slightly relaxed to avoid false positives on complex, well-tested methods
 
 Metrics/CyclomaticComplexity:
-  Max: 12                  # Allow up to 15 independent code paths
+  Max: 12                  # Allow up to 12 independent code paths
 
 Metrics/PerceivedComplexity:
-  Max: 12                  # Allow perceived complexity up to 15
+  Max: 12                  # Allow perceived complexity up to 12
 
 Metrics/ParameterLists:
   Max: 10                  # Allow up to 10 method parameters

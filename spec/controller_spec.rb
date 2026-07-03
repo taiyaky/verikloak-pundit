@@ -1,81 +1,94 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-
-class FakeRequest < Struct.new(:env); end
-
-class FakeController
-  include Verikloak::Pundit::Controller
-
-  def initialize(env)
-    @request = FakeRequest.new(env)
-  end
-
-  def request
-    @request
-  end
-end
+require 'spec_helper'
 
 RSpec.describe Verikloak::Pundit::Controller do
-  describe ".included" do
-    def build_controller_class
-      Class.new do
-        class << self
-          attr_reader :helper_method_calls
+  after do
+    Verikloak::Pundit.reset!
+  end
 
-          def helper_method(*args)
-            (@helper_method_calls ||= []) << args
-          end
-        end
+  let(:controller_class) do
+    Class.new do
+      include Verikloak::Pundit::Controller
 
-        def self.name
-          "HelperMethodTestController"
-        end
-      end
-    end
+      attr_reader :request
 
-    it "registers verikloak_claims helper when enabled" do
-      previous_value = Verikloak::Pundit.config.expose_helper_method
-      begin
-        Verikloak::Pundit.configure { |c| c.expose_helper_method = true }
-        klass = build_controller_class
-        klass.include(described_class)
-
-        expect(klass.helper_method_calls).to include([:verikloak_claims])
-      ensure
-        Verikloak::Pundit.configure { |c| c.expose_helper_method = previous_value }
-      end
-    end
-
-    it "skips helper registration when disabled" do
-      previous_value = Verikloak::Pundit.config.expose_helper_method
-      begin
-        Verikloak::Pundit.configure { |c| c.expose_helper_method = false }
-        klass = build_controller_class
-        klass.include(described_class)
-
-        expect(klass.helper_method_calls).to be_nil
-      ensure
-        Verikloak::Pundit.configure { |c| c.expose_helper_method = previous_value }
+      def initialize(env)
+        @request = Struct.new(:env).new(env)
       end
     end
   end
 
-  it "builds a UserContext from env and exposes claims" do
-    begin
-      Verikloak::Pundit.configure do |c|
-        c.env_claims_key = "verikloak.user"
-      end
-      claims = { "sub" => "xyz", "realm_access" => { "roles" => ["a"] } }
-      env = { "verikloak.user" => claims }
-      controller = FakeController.new(env)
+  describe '.included' do
+    it 'registers ViewHelpers when the base supports helper' do
+      klass = Class.new do
+        class << self
+          attr_reader :helper_calls
 
-      ctx = controller.pundit_user
-      expect(ctx).to be_a(Verikloak::Pundit::UserContext)
-      expect(ctx.sub).to eq("xyz")
-      expect(controller.verikloak_claims).to eq(claims)
-    ensure
-      Verikloak::Pundit.configure { |c| c.env_claims_key = "verikloak.user" }
+          def helper(mod)
+            (@helper_calls ||= []) << mod
+          end
+        end
+      end
+      klass.include(described_class)
+
+      expect(klass.helper_calls).to eq([Verikloak::Pundit::Controller::ViewHelpers])
     end
+
+    it 'skips helper registration when the base has no helper support' do
+      klass = Class.new
+      expect { klass.include(described_class) }.not_to raise_error
+    end
+  end
+
+  describe Verikloak::Pundit::Controller::ViewHelpers do
+    let(:view_class) do
+      Class.new do
+        include Verikloak::Pundit::Controller::ViewHelpers
+
+        attr_reader :controller
+
+        def initialize(controller)
+          @controller = controller
+        end
+      end
+    end
+
+    it 'evaluates expose_helper_method at call time' do
+      claims = { 'sub' => 'xyz' }
+      controller = controller_class.new({ 'verikloak.user' => claims })
+      view = view_class.new(controller)
+
+      Verikloak::Pundit.configure { |c| c.expose_helper_method = true }
+      expect(view.verikloak_claims).to eq(claims)
+
+      # Flipping the flag after the controller was loaded takes effect immediately
+      Verikloak::Pundit.configure { |c| c.expose_helper_method = false }
+      expect(view.verikloak_claims).to be_nil
+    end
+
+    it 'returns nil when the view has no controller' do
+      Verikloak::Pundit.configure { |c| c.expose_helper_method = true }
+      view = view_class.new(nil)
+
+      expect(view.verikloak_claims).to be_nil
+    end
+  end
+
+  it 'builds a UserContext from env and exposes claims' do
+    claims = { 'sub' => 'xyz', 'realm_access' => { 'roles' => ['a'] } }
+    env = { 'verikloak.user' => claims }
+    controller = controller_class.new(env)
+
+    ctx = controller.pundit_user
+    expect(ctx).to be_a(Verikloak::Pundit::UserContext)
+    expect(ctx.sub).to eq('xyz')
+    expect(controller.verikloak_claims).to eq(claims)
+  end
+
+  it 'memoizes pundit_user per controller instance' do
+    controller = controller_class.new({ 'verikloak.user' => { 'sub' => 'xyz' } })
+
+    expect(controller.pundit_user).to equal(controller.pundit_user)
   end
 end

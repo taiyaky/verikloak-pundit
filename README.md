@@ -90,6 +90,42 @@ Verikloak::Pundit.configure do |c|
 end
 ```
 
+The synchronization runs after your `config/initializers` have been applied
+(verikloak-rails registers its `verikloak.configure` initializer with
+`after: :load_config_initializers`), so a `user_env_key` customized in your
+verikloak-rails initializer is picked up automatically.
+
+### Strict permission mapping
+
+By default, `has_permission?` treats unmapped role names as permissions
+themselves: a bare Keycloak role `admin` satisfies `has_permission?(:admin)`
+even without a `role_map` entry. To only grant permissions that appear as
+`role_map` values, enable strict mode:
+
+```ruby
+Verikloak::Pundit.configure do |c|
+  c.role_map = { admin: :manage_all }
+  c.strict_permissions = true
+end
+```
+
+With strict mode on, roles without a `role_map` entry contribute no
+permissions. This is recommended when combining
+`permission_role_scope = :all_resources` with tokens shared across services,
+so role names minted for other clients cannot accidentally satisfy
+permission checks.
+
+`role_map` values must be Symbols, Strings, or `nil` — any other type raises
+an `ArgumentError` when assigned. Mapping a role to `nil` explicitly revokes
+its implicit permission even when strict mode is off:
+
+```ruby
+Verikloak::Pundit.configure do |c|
+  # `legacy_role` in a token no longer satisfies has_permission?(:legacy_role)
+  c.role_map = { legacy_role: nil }
+end
+```
+
 ### Working with other Verikloak gems
 
 - **verikloak-bff**: When your Rails application sits behind the BFF, the access
@@ -318,7 +354,8 @@ If you find a security vulnerability, please follow the instructions in [SECURIT
 
 - Enabling `permission_role_scope = :all_resources` pulls roles from every Keycloak client in `resource_access`. Review the granted roles carefully to ensure you are not expanding permissions beyond what the application expects.
 - Combine `permission_role_scope = :all_resources` with `permission_resource_clients` to explicitly opt-in the clients that may contribute permissions. Leaving the whitelist blank (the default) reverts to the legacy behavior of trusting every client in the token.
-- Leaving `expose_helper_method = true` exposes `verikloak_claims` to the Rails view layer. If the claims include personal or sensitive data, consider switching it to `false` and pass only the minimum required information through controller-provided helpers.
+- Enable `strict_permissions = true` so `has_permission?` only grants permissions defined as `role_map` values. Without it, any role name in the token doubles as a permission, which is convenient but broadens what a token can satisfy.
+- Leaving `expose_helper_method = true` exposes `verikloak_claims` to the Rails view layer. If the claims include personal or sensitive data, consider switching it to `false` and pass only the minimum required information through controller-provided helpers. The setting is consulted every time the view helper is called, so it can be changed in any initializer regardless of load order; when disabled, the view helper returns `nil`.
 
 ## License
 This project is licensed under the [MIT License](LICENSE).
