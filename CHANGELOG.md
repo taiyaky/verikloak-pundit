@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-07-03
+
+### Added
+- **`strict_permissions` configuration**: when enabled, `has_permission?` only grants permissions defined as `role_map` values; unmapped role names no longer act as implicit permissions. Recommended together with `permission_role_scope = :all_resources`
+
+### Changed
+- **Helper exposure is evaluated at call time**: `verikloak_claims` is exposed to views through a helper module that consults `expose_helper_method` on each call, so the setting takes effect regardless of initializer ordering. When disabled, views receive `nil` instead of raising `NoMethodError`
+- **Reentrant configuration lock**: the internal config `Mutex` was replaced with a `Monitor`, so reading `Verikloak::Pundit.config` inside a `configure` block no longer raises `ThreadError`
+- `role_map` values must be Symbols or Strings; other value types are now ignored during permission mapping instead of being coerced via `to_s`
+- Boolean configuration flags (`strict_permissions`, `expose_helper_method`) are coerced to strict `true`/`false` on finalize
+
+### Removed
+- **Unused `rack` runtime dependency**: the gem only reads the Rack env Hash and uses no Rack APIs (`rack-test` was likewise removed from development dependencies)
+
+### Fixed
+- **Per-client `resource_role?` with the default configuration**: the default `resource_roles_path` lambda ignored the requested client, so `resource_role?(client, role)` always inspected the default resource client's roles — granting or denying based on the wrong client. The default path lambda now receives `(config, client)` and resolves the explicitly requested client
+- ERRORS.md no longer claims configuration is not thread-safe (stale since the v1.0.0 thread-safety fix)
+
+### Internal
+- Refactoring: unified deep-copy helpers in `Configuration` (removed the `dup_hash`/`dup_string`/`dup_array` wrappers and the redundant `dup` override), simplified `RoleMapper.map` and `UserContext#normalize_to_symbol`
+- Test coverage: added specs for `Delegations`, `ClaimUtils`, `Railtie.sync_with_verikloak_rails`, `UserContext.from_env`, the `KEYCLOAK_RESOURCE_CLIENT` ENV fallback, and strict permission mode. Spec files are now linted by RuboCop, and Rails-stubbing specs share a scoped `stub_require` helper instead of mutating `$LOADED_FEATURES`
+
+---
+
 ## [1.0.0] - 2026-02-15
 
 ### Fixed

@@ -4,13 +4,27 @@ module Verikloak
   module Pundit
     # Rails controller mixin providing `pundit_user` and claims accessor.
     module Controller
-      # Hook used by Rails to include helper methods in views when available.
+      # View-facing helpers registered on helper-capable controllers.
+      #
+      # Exposure is decided at call time (not include time) so that
+      # `expose_helper_method` set in `config/initializers` is honored even
+      # when ActionController loads before application initializers run.
+      module ViewHelpers
+        # Access raw Verikloak claims from the controller, or nil when
+        # exposure to views is disabled via configuration.
+        #
+        # @return [Hash, nil]
+        def verikloak_claims
+          return nil unless Verikloak::Pundit.config.expose_helper_method
+
+          controller&.verikloak_claims
+        end
+      end
+
+      # Hook used by Rails to register view helpers when available.
       # @param base [Class]
       def self.included(base)
-        return unless base.respond_to?(:helper_method)
-
-        config = Verikloak::Pundit.config
-        base.helper_method :verikloak_claims if config.expose_helper_method
+        base.helper(ViewHelpers) if base.respond_to?(:helper)
       end
 
       # Pundit hook returning the UserContext built from Rack env claims.

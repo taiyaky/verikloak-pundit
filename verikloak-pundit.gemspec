@@ -19,8 +19,9 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = '>= 3.1'
 
   # Runtime dependencies
+  # NOTE: rack is intentionally NOT declared — this gem only reads the Rack
+  # env Hash provided by verikloak's middleware and uses no Rack APIs.
   spec.add_dependency 'pundit', '~> 2.3'
-  spec.add_dependency 'rack', '>= 2.2', '< 4.0'
   spec.add_dependency 'verikloak', '~> 1.0'
 
   # Metadata for RubyGems

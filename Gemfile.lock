@@ -1,9 +1,8 @@
 PATH
   remote: .
   specs:
-    verikloak-pundit (1.0.0)
+    verikloak-pundit (1.1.0)
       pundit (~> 2.3)
-      rack (>= 2.2, < 4.0)
       verikloak (~> 1.0)
 
 GEM
@@ -61,8 +60,6 @@ GEM
       activesupport (>= 3.0.0)
     racc (1.8.1)
     rack (3.2.4)
-    rack-test (2.2.0)
-      rack (>= 1.3)
     rainbow (3.1.1)
     rake (13.3.1)
     regexp_parser (2.11.3)
@@ -131,7 +128,6 @@ PLATFORMS
 
 DEPENDENCIES
   bundler-audit
-  rack-test
   rake
   rspec (~> 3.13)
   rspec_junit_formatter

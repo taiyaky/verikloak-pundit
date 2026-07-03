@@ -13,6 +13,8 @@ This document summarizes error handling expectations, fallback behaviors, and op
 | Configuration | `resource_client` or `role_map` is left unset or misconfigured in `Verikloak::Pundit.configure`. | Only role and permission mapping results change; no exception is raised. |
 | Configuration | Custom `Proc` objects are assigned to `resource_roles_path` or `realm_roles_path`. | Each segment is coerced with `to_s`; ensure the proc returns a string-compatible value to avoid unexpected dig paths. |
 | Configuration | An unknown value is assigned to `permission_role_scope`. | Falls back to the `:default_resource` behavior and continues without raising. |
+| Configuration | `strict_permissions = true` and a role has no `role_map` entry. | The role contributes no permission; `has_permission?` returns `false` for the bare role name. |
+| Configuration | A `role_map` value is neither a Symbol nor a String. | The value is ignored during permission mapping; no permission is granted for that role. |
 | JWT Claims | `claims` is `nil` or has an unexpected structure. | `UserContext` falls back to `{}`, so `realm_roles` and `resource_roles` return empty arrays. |
 | JWT Claims | `resource_access` is not a Hash or the requested client is missing. | `resource_roles` returns an empty array, causing `has_permission?` to evaluate to `false`. |
 | JWT Claims | The `email` claim is missing (and possibly `preferred_username`). | Uses `preferred_username` as a fallback; if that is also missing, returns `nil`. |
@@ -30,12 +32,15 @@ This document summarizes error handling expectations, fallback behaviors, and op
   list of clients that should influence permissions. Leaving it `nil` restores the
   legacy "trust every client" behavior, which may not be appropriate when tokens are
   shared across services (for example, via verikloak-bff).
-- Keeping `expose_helper_method` set to `true` exposes `verikloak_claims` directly to views. If the claims carry personal or sensitive information, prefer disabling it (`false`) and limit the data passed to templates.
+- Enable `strict_permissions = true` so only permissions defined as `role_map` values can
+  satisfy `has_permission?`. Without it, any role name present in the token acts as an
+  implicit permission.
+- Keeping `expose_helper_method` set to `true` exposes `verikloak_claims` directly to views. If the claims carry personal or sensitive information, prefer disabling it (`false`) and limit the data passed to templates. The flag is evaluated on every helper call, so it works regardless of initializer ordering; when disabled, the view helper returns `nil`.
 
 ## Logging and Debugging Tips
 - In Rails, inspect claim payloads with `Rails.logger.debug(request.env[Verikloak::Pundit.config.env_claims_key])`.
 - To isolate authorization issues, instantiate `UserContext` directly and inspect `realm_roles`, `resource_roles`, and `has_permission?` outcomes in a console session.
 
 ## Known Limitations
-- Configuration is not thread-safe; coordinate externally if you must switch settings dynamically in multi-threaded environments.
+- Configuration reads/writes are guarded by a reentrant lock, and published configurations are frozen snapshots; `UserContext` keeps the snapshot it was built with, so mid-request reconfiguration does not affect existing contexts. Prefer configuring once during boot regardless.
 - The gem does not ship logging or alerting. Add monitoring or notifications in your application layer when required.

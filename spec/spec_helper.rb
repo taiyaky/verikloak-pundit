@@ -16,7 +16,6 @@ if ENV['SIMPLECOV']
 end
 
 require 'rspec'
-require 'rack/test'
 
 # Load library path
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
@@ -29,7 +28,7 @@ rescue LoadError => e
 end
 
 # Load support helpers if present (optional)
-Dir[File.expand_path('support/**/*.rb', __dir__)].sort.each { |f| require f }
+Dir[File.expand_path('support/**/*.rb', __dir__)].each { |f| require f }
 
 RSpec.configure do |config|
   config.expect_with :rspec do |c|

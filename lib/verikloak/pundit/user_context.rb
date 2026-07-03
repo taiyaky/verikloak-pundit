@@ -190,15 +190,18 @@ module Verikloak
         permissions = Set.new
 
         roles.each do |role|
-          mapped_permission = RoleMapper.map(role, config)
-          symbol_permission = normalize_to_symbol(mapped_permission)
+          permission = RoleMapper.permission_for(role, config)
+          symbol_permission = normalize_to_symbol(permission)
           permissions << symbol_permission if symbol_permission
         end
 
         permissions
       end
 
-      # Normalize a value to a symbol, handling various types safely.
+      # Normalize a value to a symbol. Only Symbols and non-empty Strings are
+      # convertible; any other type (including role_map values that are not
+      # Symbol/String) is ignored.
+      #
       # @param value [Object] The value to convert to a symbol
       # @return [Symbol, nil] The symbol representation, or nil if not convertible
       def normalize_to_symbol(value)
@@ -206,21 +209,8 @@ module Verikloak
         when Symbol
           value
         when String
-          return nil if value.empty?
-
-          value.to_sym
-        else
-          if value.respond_to?(:to_sym)
-            value.to_sym
-          elsif value.respond_to?(:to_s)
-            text = value.to_s
-            return nil if text.empty?
-
-            text.to_sym
-          end
+          value.empty? ? nil : value.to_sym
         end
-      rescue StandardError
-        nil
       end
     end
   end

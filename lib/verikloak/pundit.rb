@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'monitor'
+
 # Verikloak::Pundit provides Pundit integration over Keycloak claims.
 require_relative 'pundit/version'
 require_relative 'pundit/configuration'
@@ -13,10 +15,12 @@ require_relative 'pundit/railtie' if defined?(Rails::Railtie)
 module Verikloak
   # Pundit integration namespace
   module Pundit
-    # Eagerly-initialized mutex to protect configuration reads/writes.
-    # Using ||= Mutex.new inside a method is NOT thread-safe — two threads
-    # can race past the nil-check and create separate Mutex instances.
-    @config_mutex = Mutex.new
+    # Eagerly-initialized lock to protect configuration reads/writes.
+    # Using ||= inside a method is NOT thread-safe — two threads can race
+    # past the nil-check and create separate lock instances. A reentrant
+    # Monitor (rather than Mutex) allows `config` to be read from within a
+    # `configure` block without raising ThreadError.
+    @config_lock = Monitor.new
 
     class << self
       # Configure the library at runtime.
@@ -25,7 +29,7 @@ module Verikloak
       # @return [Configuration] the current configuration after applying changes
       def configure
         new_config = nil
-        config_mutex.synchronize do
+        config_lock.synchronize do
           current = @config&.dup || Configuration.new
           yield current if block_given?
           new_config = current.finalize!
@@ -38,7 +42,7 @@ module Verikloak
       #
       # @return [Configuration]
       def config
-        config_mutex.synchronize do
+        config_lock.synchronize do
           @config ||= Configuration.new.finalize!
         end
       end
@@ -47,18 +51,18 @@ module Verikloak
       #
       # @return [void]
       def reset!
-        config_mutex.synchronize do
+        config_lock.synchronize do
           @config = nil
         end
       end
 
       private
 
-      # Mutex protecting configuration reads/writes to maintain thread safety.
+      # Reentrant lock protecting configuration reads/writes.
       # Eagerly initialized at load time (see module body above).
       #
-      # @return [Mutex]
-      attr_reader :config_mutex
+      # @return [Monitor]
+      attr_reader :config_lock
     end
   end
 end

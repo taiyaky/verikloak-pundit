@@ -20,9 +20,14 @@ Verikloak::Pundit.configure do |c|
   #   reader: :read_notes
   # }
 
+  # Only grant permissions defined as role_map values (optional, default: false).
+  # When true, bare role names no longer act as implicit permissions in
+  # has_permission?. Recommended with permission_role_scope = :all_resources.
+  # c.strict_permissions = true
+
   # Uncomment to customize JWT claims path and scope (usually not needed):
   # c.env_claims_key = 'verikloak.user'
   # c.realm_roles_path = %w[realm_access roles]
-  # c.resource_roles_path = ['resource_access', ->(cfg) { cfg.resource_client }, 'roles']
+  # c.resource_roles_path = ['resource_access', ->(cfg, client) { client || cfg.resource_client }, 'roles']
   # c.permission_role_scope = :default_resource  # or :all_resources
 end

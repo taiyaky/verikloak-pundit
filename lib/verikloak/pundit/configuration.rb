@@ -19,13 +19,17 @@ module Verikloak
     # @!attribute permission_resource_clients
     #   @return [Array<String>, nil] list of resource clients allowed when
     #     {#permission_role_scope} is `:all_resources`. `nil` permits every client.
+    # @!attribute strict_permissions
+    #   @return [Boolean] when true, `has_permission?` only grants permissions that
+    #     appear as values in {#role_map}; unmapped role names no longer act as
+    #     implicit permissions
     # @!attribute expose_helper_method
-    #   @return [Boolean] whether to register `verikloak_claims` as a Rails helper method
+    #   @return [Boolean] whether `verikloak_claims` is exposed to Rails views
     class Configuration
       attr_accessor :env_claims_key,
                     :realm_roles_path, :resource_roles_path,
                     :permission_role_scope, :permission_resource_clients,
-                    :expose_helper_method
+                    :strict_permissions, :expose_helper_method
 
       attr_reader :role_map
       attr_writer :resource_client
@@ -45,34 +49,39 @@ module Verikloak
         @resource_client || ENV.fetch('KEYCLOAK_RESOURCE_CLIENT', 'rails-api')
       end
 
-      # Build a new configuration, optionally copying values from another
-      # configuration so callers can mutate a safe duplicate.
-      #
-      # @param copy_from [Configuration, nil]
-      def initialize(copy_from = nil)
-        if copy_from
-          initialize_from(copy_from)
-        else
-          initialize_defaults
-        end
+      # Build a new configuration populated with default values.
+      def initialize
+        @resource_client   = nil # Falls back to ENV['KEYCLOAK_RESOURCE_CLIENT'] or 'rails-api'
+        @role_map          = {} # e.g., { admin: :manage_all }
+        @env_claims_key    = 'verikloak.user'
+        @realm_roles_path  = %w[realm_access roles]
+        # The lambda receives (config, client) so that an explicitly requested
+        # client (e.g. resource_role?(:other, :role)) resolves to that client's
+        # entry instead of always falling back to the default resource client.
+        @resource_roles_path = ['resource_access', ->(cfg, client) { client || cfg.resource_client }, 'roles']
+        # :default_resource (realm + default client), :all_resources (realm + all clients)
+        @permission_role_scope = :default_resource
+        @permission_resource_clients = nil
+        @strict_permissions = false
+        @expose_helper_method = true
       end
 
-      # Create a deep-ish copy that can be safely mutated without affecting the
-      # source configuration. `dup` is overridden so the object returned from
-      # `Verikloak::Pundit.config.dup` behaves as expected.
-      #
-      # @return [Configuration]
-      def dup
-        self.class.new(self)
-      end
-
-      # Duplicate the configuration via Ruby's `dup`, ensuring the new instance
-      # receives freshly-copied nested state.
+      # Duplicate the configuration via Ruby's `dup`/`clone`, ensuring the new
+      # instance receives freshly-copied (and unfrozen) nested state.
       #
       # @param other [Configuration]
       def initialize_copy(other)
         super
-        initialize_from(other)
+        # Copy the raw instance variable, not the getter, to preserve ENV fallback behavior
+        @resource_client = deep_dup(other.instance_variable_get(:@resource_client))
+        @role_map = deep_dup(other.role_map)
+        @env_claims_key = deep_dup(other.env_claims_key)
+        @realm_roles_path = deep_dup(other.realm_roles_path)
+        @resource_roles_path = deep_dup(other.resource_roles_path)
+        @permission_role_scope = other.permission_role_scope
+        @permission_resource_clients = deep_dup(other.permission_resource_clients)
+        @strict_permissions = other.strict_permissions
+        @expose_helper_method = other.expose_helper_method
       end
 
       # Freeze the configuration and its nested structures to prevent runtime
@@ -83,30 +92,17 @@ module Verikloak
       def finalize!
         @resource_client = freeze_string(@resource_client)
         @env_claims_key = freeze_string(@env_claims_key)
-        @role_map = dup_hash(@role_map).freeze
-        @realm_roles_path = dup_array(@realm_roles_path).freeze
-        @resource_roles_path = dup_array(@resource_roles_path).freeze
+        @role_map = deep_dup(@role_map).freeze
+        @realm_roles_path = deep_dup(@realm_roles_path).freeze
+        @resource_roles_path = deep_dup(@resource_roles_path).freeze
         @permission_resource_clients = freeze_permission_clients(@permission_resource_clients)
-        @expose_helper_method = !@expose_helper_method.nil? && @expose_helper_method
+        # Coerce flags to strict booleans based on truthiness
+        @strict_permissions = @strict_permissions ? true : false
+        @expose_helper_method = @expose_helper_method ? true : false
         freeze
       end
 
       private
-
-      # Populate default values that mirror the gem's out-of-the-box behavior.
-      def initialize_defaults
-        @resource_client   = nil # Falls back to ENV['KEYCLOAK_RESOURCE_CLIENT'] or 'rails-api'
-        @role_map          = {} # e.g., { admin: :manage_all }
-        @env_claims_key    = 'verikloak.user'
-        @realm_roles_path  = %w[realm_access roles]
-        # rubocop:disable Style/SymbolProc -- we need a Proc object here, not block pass
-        @resource_roles_path = ['resource_access', ->(cfg) { cfg.resource_client }, 'roles']
-        # rubocop:enable Style/SymbolProc
-        # :default_resource (realm + default client), :all_resources (realm + all clients)
-        @permission_role_scope = :default_resource
-        @permission_resource_clients = nil
-        @expose_helper_method = true
-      end
 
       # Normalize role_map keys to symbols for consistent lookup.
       #
@@ -118,22 +114,6 @@ module Verikloak
         map.transform_keys(&:to_sym)
       end
 
-      # Copy configuration fields from another instance, duplicating mutable
-      # structures so future writes do not leak across instances.
-      #
-      # @param other [Configuration]
-      def initialize_from(other)
-        # Copy the raw instance variable, not the getter, to preserve ENV fallback behavior
-        @resource_client = dup_string(other.instance_variable_get(:@resource_client))
-        @role_map = dup_hash(other.role_map)
-        @env_claims_key = dup_string(other.env_claims_key)
-        @realm_roles_path = dup_array(other.realm_roles_path)
-        @resource_roles_path = dup_array(other.resource_roles_path)
-        @permission_role_scope = other.permission_role_scope
-        @permission_resource_clients = dup_array(other.permission_resource_clients)
-        @expose_helper_method = other.expose_helper_method
-      end
-
       # Duplicate and freeze a string value, returning `nil` when appropriate.
       #
       # @param value [String, nil]
@@ -141,7 +121,7 @@ module Verikloak
       def freeze_string(value)
         return nil if value.nil?
 
-        dup_string(value).freeze
+        deep_dup(value).freeze
       end
 
       # Deep duplicate any object, handling nested structures recursively.
@@ -165,30 +145,6 @@ module Verikloak
         end
       end
 
-      # Duplicate a hash using deep duplication.
-      #
-      # @param value [Hash, nil]
-      # @return [Hash, nil]
-      def dup_hash(value)
-        deep_dup(value)
-      end
-
-      # Duplicate a string guardingly, returning `nil` when no value is present.
-      #
-      # @param value [String, nil]
-      # @return [String, nil]
-      def dup_string(value)
-        deep_dup(value)
-      end
-
-      # Duplicate an array using deep duplication.
-      #
-      # @param value [Array, nil]
-      # @return [Array, nil]
-      def dup_array(value)
-        deep_dup(value)
-      end
-
       # Check whether a value can be safely duplicated using `dup`.
       #
       # @param value [Object]
@@ -206,7 +162,7 @@ module Verikloak
       # @param value [Array<String, Symbol>, nil]
       # @return [Array<String>, nil]
       def freeze_permission_clients(value)
-        array = dup_array(value)
+        array = deep_dup(value)
         return nil if array.nil?
 
         array.compact.map(&:to_s).uniq.freeze
