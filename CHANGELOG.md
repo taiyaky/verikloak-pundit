@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `role_map` values must be Symbols or Strings; other value types are now ignored during permission mapping instead of being coerced via `to_s`
 - Boolean configuration flags (`strict_permissions`, `expose_helper_method`) are coerced to strict `true`/`false` on finalize
 
+### Security
+- Updated locked development/CI dependencies to resolve all known advisories (25 Dependabot alerts): rack 3.2.6, activesupport 8.1.3, concurrent-ruby 1.3.7, faraday 2.14.3, jwt 3.2.0, json 2.20.0. Runtime dependency constraints are unchanged
+
 ### Removed
 - **Unused `rack` runtime dependency**: the gem only reads the Rack env Hash and uses no Rack APIs (`rack-test` was likewise removed from development dependencies)
 
